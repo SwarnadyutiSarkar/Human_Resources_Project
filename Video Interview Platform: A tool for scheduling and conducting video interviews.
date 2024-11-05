@@ -1,0 +1,140 @@
+from flask import Flask, request, jsonify, render_template
+from datetime import datetime
+import random
+import string
+
+app = Flask(__name__)
+
+# Mock database for scheduled interviews
+interviews = []
+
+def generate_meeting_link():
+    # This is a placeholder for generating a meeting link.
+    # In a real application, this should interact with a video conferencing API.
+    return f"https://mockvideoconference.com/{''.join(random.choices(string.ascii_letters + string.digits, k=8))}"
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/schedule', methods=['POST'])
+def schedule_interview():
+    data = request.json
+    interviewer = data.get('interviewer')
+    candidate = data.get('candidate')
+    date_time_str = data.get('date_time')
+    
+    try:
+        # Parse the date and time
+        date_time = datetime.strptime(date_time_str, '%Y-%m-%d %H:%M')
+        meeting_link = generate_meeting_link()
+        
+        # Save the interview details
+        interview = {
+            'interviewer': interviewer,
+            'candidate': candidate,
+            'date_time': date_time,
+            'meeting_link': meeting_link
+        }
+        interviews.append(interview)
+        
+        return jsonify({'message': 'Interview scheduled successfully!', 'meeting_link': meeting_link}), 201
+    except ValueError:
+        return jsonify({'error': 'Invalid date and time format. Use YYYY-MM-DD HH:MM'}), 400
+
+@app.route('/interviews', methods=['GET'])
+def get_interviews():
+    return jsonify(interviews), 200
+
+if __name__ == "__main__":
+    app.run(debug=True)
+------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Interview Platform</title>
+</head>
+<body>
+    <h1>Schedule a Video Interview</h1>
+    <form id="interview-form">
+        <label for="interviewer">Interviewer:</label>
+        <input type="text" id="interviewer" required><br><br>
+        <label for="candidate">Candidate:</label>
+        <input type="text" id="candidate" required><br><br>
+        <label for="date_time">Date and Time (YYYY-MM-DD HH:MM):</label>
+        <input type="text" id="date_time" required><br><br>
+        <button type="submit">Schedule Interview</button>
+    </form>
+    <div id="response"></div>
+
+    <script>
+        document.getElementById('interview-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const interviewer = document.getElementById('interviewer').value;
+            const candidate = document.getElementById('candidate').value;
+            const date_time = document.getElementById('date_time').value;
+
+            const response = await fetch('/schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ interviewer, candidate, date_time })
+            });
+
+            const result = await response.json();
+            document.getElementById('response').innerText = result.message || result.error;
+            if (result.meeting_link) {
+                document.getElementById('response').innerText += ` Meeting Link: ${result.meeting_link}`;
+            }
+        });
+    </script>
+</body>
+</html>
+---------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Interview Platform</title>
+</head>
+<body>
+    <h1>Schedule a Video Interview</h1>
+    <form id="interview-form">
+        <label for="interviewer">Interviewer:</label>
+        <input type="text" id="interviewer" required><br><br>
+        <label for="candidate">Candidate:</label>
+        <input type="text" id="candidate" required><br><br>
+        <label for="date_time">Date and Time (YYYY-MM-DD HH:MM):</label>
+        <input type="text" id="date_time" required><br><br>
+        <button type="submit">Schedule Interview</button>
+    </form>
+    <div id="response"></div>
+
+    <script>
+        document.getElementById('interview-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const interviewer = document.getElementById('interviewer').value;
+            const candidate = document.getElementById('candidate').value;
+            const date_time = document.getElementById('date_time').value;
+
+            const response = await fetch('/schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ interviewer, candidate, date_time })
+            });
+
+            const result = await response.json();
+            document.getElementById('response').innerText = result.message || result.error;
+            if (result.meeting_link) {
+                document.getElementById('response').innerText += ` Meeting Link: ${result.meeting_link}`;
+            }
+        });
+    </script>
+</body>
+</html>
