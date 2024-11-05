@@ -1,0 +1,53 @@
+import requests
+
+class JobPostingTool:
+    def __init__(self, job_details):
+        self.job_details = job_details
+        self.platforms = {
+            'LinkedIn': 'https://api.linkedin.com/v2/jobs',
+            'Indeed': 'https://api.indeed.com/ads/apisearch',
+            'Glassdoor': 'https://api.glassdoor.com/api/jobPost',
+        }
+
+    def post_to_linkedin(self):
+        headers = {'Authorization': 'Bearer YOUR_LINKEDIN_ACCESS_TOKEN'}
+        response = requests.post(self.platforms['LinkedIn'], headers=headers, json=self.job_details)
+        return response.json()
+
+    def post_to_indeed(self):
+        params = {
+            'q': self.job_details['title'],
+            'l': self.job_details['location'],
+            'user_ip': 'USER_IP',  # Replace with actual user IP
+            'user_agent': 'USER_AGENT'  # Replace with actual user agent
+        }
+        response = requests.get(self.platforms['Indeed'], params=params)
+        return response.json()
+
+    def post_to_glassdoor(self):
+        headers = {'Authorization': 'Bearer YOUR_GLASSDOOR_ACCESS_TOKEN'}
+        response = requests.post(self.platforms['Glassdoor'], headers=headers, json=self.job_details)
+        return response.json()
+
+    def post_job(self):
+        results = {}
+        results['LinkedIn'] = self.post_to_linkedin()
+        results['Indeed'] = self.post_to_indeed()
+        results['Glassdoor'] = self.post_to_glassdoor()
+        return results
+
+if __name__ == "__main__":
+    job_details = {
+        'title': 'Software Engineer',
+        'description': 'Develop and maintain software applications.',
+        'location': 'Kolkata, India',
+        'company': 'Your Company Name',
+        'salary': '60000',
+        'employment_type': 'Full-time'
+    }
+
+    job_tool = JobPostingTool(job_details)
+    results = job_tool.post_job()
+
+    print("Job posting results:")
+    print(results)
