@@ -1,0 +1,74 @@
+import os
+import pandas as pd
+import nltk
+from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import CountVectorizer
+
+# Download NLTK resources
+nltk.download('stopwords')
+
+class CandidateScreeningSystem:
+    def __init__(self, job_description, resumes_folder):
+        self.job_description = job_description
+        self.resumes_folder = resumes_folder
+        self.stop_words = set(stopwords.words('english'))
+    
+    def preprocess_text(self, text):
+        # Convert to lowercase
+        text = text.lower()
+        # Remove stop words
+        text = ' '.join(word for word in text.split() if word not in self.stop_words)
+        return text
+    
+    def analyze_resumes(self):
+        resumes = []
+        for filename in os.listdir(self.resumes_folder):
+            if filename.endswith('.txt'):  # Assuming resumes are in .txt format
+                with open(os.path.join(self.resumes_folder, filename), 'r', encoding='utf-8') as file:
+                    resume_text = file.read()
+                    processed_resume = self.preprocess_text(resume_text)
+                    resumes.append({'filename': filename, 'content': processed_resume})
+        
+        return resumes
+    
+    def score_candidates(self, resumes):
+        # Prepare the job description
+        processed_job_desc = self.preprocess_text(self.job_description)
+        
+        # Create a CountVectorizer
+        vectorizer = CountVectorizer()
+        corpus = [processed_job_desc] + [resume['content'] for resume in resumes]
+        X = vectorizer.fit_transform(corpus)
+        
+        # Calculate similarity scores (using cosine similarity)
+        scores = X[0, 1:].toarray().flatten()
+        
+        return scores
+    
+    def shortlist_candidates(self):
+        resumes = self.analyze_resumes()
+        scores = self.score_candidates(resumes)
+        
+        # Create a DataFrame for better visualization
+        candidates_df = pd.DataFrame(resumes)
+        candidates_df['score'] = scores
+        
+        # Sort candidates by score
+        shortlisted_candidates = candidates_df.sort_values(by='score', ascending=False)
+        
+        return shortlisted_candidates
+
+if __name__ == "__main__":
+    job_description = """
+    We are looking for a skilled Software Engineer with experience in Python, 
+    machine learning, and web development. Strong problem-solving skills and 
+    the ability to work in a team are essential.
+    """
+    
+    resumes_folder = 'path/to/resumes'  # Update this path to your resumes folder
+    screening_system = CandidateScreeningSystem(job_description, resumes_folder)
+    
+    shortlisted = screening_system.shortlist_candidates()
+    
+    print("Shortlisted Candidates:")
+    print(shortlisted[['filename', 'score']])
