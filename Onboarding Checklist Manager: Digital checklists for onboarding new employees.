@@ -1,0 +1,184 @@
+app.py
+---------------------------------
+from flask import Flask, render_template, jsonify, request
+
+app = Flask(__name__)
+
+# Example data to simulate the onboarding process
+checklists = {
+    'employee_1': {
+        'name': 'John Doe',
+        'tasks': [
+            {'task': 'Fill out personal information', 'completed': False},
+            {'task': 'Sign NDA', 'completed': False},
+            {'task': 'Set up email', 'completed': False},
+            {'task': 'Complete company training', 'completed': False},
+            {'task': 'Meet the team', 'completed': False},
+        ]
+    },
+    'employee_2': {
+        'name': 'Jane Smith',
+        'tasks': [
+            {'task': 'Fill out personal information', 'completed': False},
+            {'task': 'Sign NDA', 'completed': False},
+            {'task': 'Set up email', 'completed': False},
+            {'task': 'Complete company training', 'completed': False},
+            {'task': 'Meet the team', 'completed': False},
+        ]
+    }
+}
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/get_checklists', methods=['GET'])
+def get_checklists():
+    return jsonify(checklists)
+
+@app.route('/update_task', methods=['POST'])
+def update_task():
+    data = request.json
+    employee_id = data['employee_id']
+    task_index = data['task_index']
+    completed = data['completed']
+
+    if employee_id in checklists:
+        checklists[employee_id]['tasks'][task_index]['completed'] = completed
+        return jsonify({'status': 'success'}), 200
+    return jsonify({'status': 'error', 'message': 'Employee not found'}), 404
+
+if __name__ == '__main__':
+    app.run(debug=True)
+------------------------------------
+templates/index.html
+-------------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding Checklist Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Onboarding Checklist Manager</h1>
+        <div id="employee-list">
+            <!-- Dynamic employee checklists will be loaded here -->
+        </div>
+    </div>
+
+    <script>
+        // Fetch the checklist data from the backend
+        fetch('/get_checklists')
+            .then(response => response.json())
+            .then(data => {
+                const employeeList = document.getElementById('employee-list');
+                for (let employeeId in data) {
+                    const employee = data[employeeId];
+                    const employeeDiv = document.createElement('div');
+                    employeeDiv.classList.add('employee');
+
+                    const employeeName = document.createElement('h2');
+                    employeeName.textContent = employee.name;
+                    employeeDiv.appendChild(employeeName);
+
+                    const checklistUL = document.createElement('ul');
+                    employee.tasks.forEach((task, index) => {
+                        const taskLI = document.createElement('li');
+                        taskLI.classList.add('task');
+
+                        const taskLabel = document.createElement('label');
+                        taskLabel.textContent = task.task;
+
+                        const taskCheckbox = document.createElement('input');
+                        taskCheckbox.type = 'checkbox';
+                        taskCheckbox.checked = task.completed;
+                        taskCheckbox.addEventListener('change', function () {
+                            updateTask(employeeId, index, taskCheckbox.checked);
+                        });
+
+                        taskLI.appendChild(taskCheckbox);
+                        taskLI.appendChild(taskLabel);
+                        checklistUL.appendChild(taskLI);
+                    });
+
+                    employeeDiv.appendChild(checklistUL);
+                    employeeList.appendChild(employeeDiv);
+                }
+            })
+            .catch(err => console.error('Error loading checklists:', err));
+
+        function updateTask(employeeId, taskIndex, completed) {
+            fetch('/update_task', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    employee_id: employeeId,
+                    task_index: taskIndex,
+                    completed: completed
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Task updated successfully');
+                } else {
+                    console.error('Error updating task');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+-------------------------------------------------
+static/styles.css
+----------------------------------------------------
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f4f7f6;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.employee {
+    margin-bottom: 30px;
+}
+
+.employee h2 {
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.task {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.task input[type="checkbox"] {
+    margin-right: 10px;
+}
