@@ -1,0 +1,324 @@
+app.py
+-----------------------------
+from flask import Flask, render_template, jsonify, request
+
+app = Flask(__name__)
+
+# Simulating a database with job listings and users
+job_listings = [
+    {'id': 1, 'title': 'Software Engineer', 'company': 'TechCorp', 'location': 'Remote', 'description': 'Develop web applications.'},
+    {'id': 2, 'title': 'Data Scientist', 'company': 'DataCo', 'location': 'San Francisco', 'description': 'Analyze data and build models.'},
+    {'id': 3, 'title': 'Product Manager', 'company': 'InnovateX', 'location': 'New York', 'description': 'Lead product development.'}
+]
+
+employers = [
+    {'id': 1, 'name': 'TechCorp', 'contact': 'hr@techcorp.com'},
+    {'id': 2, 'name': 'DataCo', 'contact': 'recruit@dataco.com'},
+    {'id': 3, 'name': 'InnovateX', 'contact': 'jobs@innovatex.com'}
+]
+
+messages = []
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/get_jobs', methods=['GET'])
+def get_jobs():
+    return jsonify(job_listings)
+
+@app.route('/get_employers', methods=['GET'])
+def get_employers():
+    return jsonify(employers)
+
+@app.route('/post_message', methods=['POST'])
+def post_message():
+    data = request.json
+    message = {
+        'from': data['from'],
+        'to': data['to'],
+        'message': data['message']
+    }
+    messages.append(message)
+    return jsonify({'status': 'success'}), 200
+
+@app.route('/get_messages', methods=['GET'])
+def get_messages():
+    return jsonify(messages)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+--------------------------
+templates/index.html
+--------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Job Fair</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Virtual Job Fair</h1>
+        
+        <div class="tabs">
+            <button id="job-seeker-tab">Job Seeker</button>
+            <button id="employer-tab">Employer</button>
+        </div>
+        
+        <div id="job-seeker-section" class="section">
+            <h2>Browse Job Listings</h2>
+            <ul id="job-listings">
+                <!-- Job listings will appear here -->
+            </ul>
+            <div id="messages-section">
+                <h3>Messages</h3>
+                <ul id="messages-list">
+                    <!-- Messages will appear here -->
+                </ul>
+                <textarea id="message-input" placeholder="Send a message..."></textarea>
+                <button id="send-message">Send Message</button>
+            </div>
+        </div>
+
+        <div id="employer-section" class="section" style="display: none;">
+            <h2>Manage Job Listings</h2>
+            <ul id="employer-job-listings">
+                <!-- Employer job listings will appear here -->
+            </ul>
+            <div id="employer-messages-section">
+                <h3>Messages</h3>
+                <ul id="employer-messages-list">
+                    <!-- Employer messages will appear here -->
+                </ul>
+                <textarea id="employer-message-input" placeholder="Send a message..."></textarea>
+                <button id="send-employer-message">Send Message</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentUser = 'Job Seeker';  // Can be 'Job Seeker' or 'Employer'
+        let currentEmployerId = null;
+        let currentJobId = null;
+
+        // Switch between tabs
+        document.getElementById('job-seeker-tab').addEventListener('click', () => showTab('Job Seeker'));
+        document.getElementById('employer-tab').addEventListener('click', () => showTab('Employer'));
+
+        function showTab(userType) {
+            currentUser = userType;
+            if (userType === 'Job Seeker') {
+                document.getElementById('job-seeker-section').style.display = 'block';
+                document.getElementById('employer-section').style.display = 'none';
+                loadJobs();
+                loadMessages();
+            } else {
+                document.getElementById('job-seeker-section').style.display = 'none';
+                document.getElementById('employer-section').style.display = 'block';
+                loadEmployerJobs();
+                loadEmployerMessages();
+            }
+        }
+
+        function loadJobs() {
+            fetch('/get_jobs')
+                .then(response => response.json())
+                .then(data => {
+                    const jobListings = document.getElementById('job-listings');
+                    jobListings.innerHTML = '';
+                    data.forEach(job => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `${job.title} at ${job.company} - ${job.location}`;
+                        li.addEventListener('click', () => {
+                            currentJobId = job.id;
+                            currentEmployerId = job.company;
+                            loadMessages();
+                        });
+                        jobListings.appendChild(li);
+                    });
+                });
+        }
+
+        function loadMessages() {
+            fetch('/get_messages')
+                .then(response => response.json())
+                .then(data => {
+                    const messagesList = document.getElementById('messages-list');
+                    messagesList.innerHTML = '';
+                    data.forEach(msg => {
+                        if (msg.to === currentEmployerId || msg.from === currentEmployerId) {
+                            const li = document.createElement('li');
+                            li.innerHTML = `${msg.from}: ${msg.message}`;
+                            messagesList.appendChild(li);
+                        }
+                    });
+                });
+        }
+
+        document.getElementById('send-message').addEventListener('click', () => {
+            const message = document.getElementById('message-input').value;
+            if (message && currentJobId && currentEmployerId) {
+                fetch('/post_message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        from: 'Job Seeker',
+                        to: currentEmployerId,
+                        message: message
+                    })
+                }).then(() => {
+                    loadMessages();
+                    document.getElementById('message-input').value = '';
+                });
+            }
+        });
+
+        function loadEmployerJobs() {
+            fetch('/get_jobs')
+                .then(response => response.json())
+                .then(data => {
+                    const employerJobListings = document.getElementById('employer-job-listings');
+                    employerJobListings.innerHTML = '';
+                    data.forEach(job => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `${job.title} at ${job.company} - ${job.location}`;
+                        employerJobListings.appendChild(li);
+                    });
+                });
+        }
+
+        function loadEmployerMessages() {
+            fetch('/get_messages')
+                .then(response => response.json())
+                .then(data => {
+                    const employerMessagesList = document.getElementById('employer-messages-list');
+                    employerMessagesList.innerHTML = '';
+                    data.forEach(msg => {
+                        if (msg.to === currentEmployerId || msg.from === currentEmployerId) {
+                            const li = document.createElement('li');
+                            li.innerHTML = `${msg.from}: ${msg.message}`;
+                            employerMessagesList.appendChild(li);
+                        }
+                    });
+                });
+        }
+
+        document.getElementById('send-employer-message').addEventListener('click', () => {
+            const message = document.getElementById('employer-message-input').value;
+            if (message && currentEmployerId) {
+                fetch('/post_message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        from: currentEmployerId,
+                        to: 'Job Seeker',
+                        message: message
+                    })
+                }).then(() => {
+                    loadEmployerMessages();
+                    document.getElementById('employer-message-input').value = '';
+                });
+            }
+        });
+
+        // Default to the Job Seeker tab
+        showTab('Job Seeker');
+    </script>
+</body>
+</html>
+------------------------------
+static/styles.css
+--------------------------------------
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f7f6;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    font-size: 36px;
+    margin-bottom: 30px;
+}
+
+.tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.tabs button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 0 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.tabs button:hover {
+    background-color: #f0f0f0;
+}
+
+.section {
+    display: none;
+}
+
+ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+li {
+    padding: 10px;
+    margin: 5px 0;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+li:hover {
+    background-color: #e9e9e9;
+}
+
+textarea {
+    width: 100%;
+    height: 100px;
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
