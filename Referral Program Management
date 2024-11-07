@@ -1,0 +1,110 @@
+class ReferralProgram:
+    def __init__(self):
+        self.referrals = {}  # Stores employee referrals with employee ID as key
+        self.candidates = []  # List to store candidate details
+        self.referral_rewards = 500  # Example referral reward
+
+    def add_employee(self, employee_id, employee_name):
+        """Add an employee to the referral system."""
+        if employee_id not in self.referrals:
+            self.referrals[employee_id] = {
+                "employee_name": employee_name,
+                "referrals": []
+            }
+            print(f"Employee {employee_name} (ID: {employee_id}) added to the system.")
+        else:
+            print(f"Employee ID {employee_id} already exists.")
+
+    def add_referral(self, employee_id, candidate_name, candidate_email):
+        """Employee refers a candidate."""
+        if employee_id in self.referrals:
+            candidate_id = len(self.candidates) + 1
+            self.candidates.append({
+                "candidate_id": candidate_id,
+                "candidate_name": candidate_name,
+                "candidate_email": candidate_email,
+                "status": "Under Review"  # Default status
+            })
+            self.referrals[employee_id]["referrals"].append(candidate_id)
+            print(f"Referral added for candidate {candidate_name} by employee {self.referrals[employee_id]['employee_name']}.")
+        else:
+            print(f"Employee ID {employee_id} does not exist.")
+
+    def update_referral_status(self, candidate_id, new_status):
+        """Update the status of a referred candidate."""
+        for candidate in self.candidates:
+            if candidate["candidate_id"] == candidate_id:
+                candidate["status"] = new_status
+                print(f"Referral status for candidate ID {candidate_id} updated to {new_status}.")
+                return
+        print(f"Candidate ID {candidate_id} not found.")
+
+    def reward_employee(self, employee_id):
+        """Reward employee for a successful referral."""
+        if employee_id in self.referrals:
+            successful_referrals = [ref for ref in self.referrals[employee_id]["referrals"] if self.is_referral_successful(ref)]
+            reward = len(successful_referrals) * self.referral_rewards
+            print(f"Employee {self.referrals[employee_id]['employee_name']} has earned ${reward} in referral rewards.")
+        else:
+            print(f"Employee ID {employee_id} not found.")
+
+    def is_referral_successful(self, candidate_id):
+        """Check if a candidate's referral was successful."""
+        for candidate in self.candidates:
+            if candidate["candidate_id"] == candidate_id:
+                return candidate["status"] == "Hired"
+        return False
+
+    def view_referrals(self, employee_id):
+        """View the referrals made by an employee."""
+        if employee_id in self.referrals:
+            employee_referrals = self.referrals[employee_id]["referrals"]
+            if employee_referrals:
+                print(f"Referrals made by {self.referrals[employee_id]['employee_name']}:")
+                for ref_id in employee_referrals:
+                    ref = next((c for c in self.candidates if c["candidate_id"] == ref_id), None)
+                    print(f"Candidate Name: {ref['candidate_name']}, Status: {ref['status']}")
+            else:
+                print(f"No referrals found for employee {self.referrals[employee_id]['employee_name']}.")
+        else:
+            print(f"Employee ID {employee_id} does not exist.")
+
+    def view_all_candidates(self):
+        """View all candidates in the system."""
+        if self.candidates:
+            print("All candidates in the system:")
+            for candidate in self.candidates:
+                print(f"Candidate Name: {candidate['candidate_name']}, Email: {candidate['candidate_email']}, Status: {candidate['status']}")
+        else:
+            print("No candidates found in the system.")
+
+
+# Example usage of the Referral Program Management system
+
+if __name__ == "__main__":
+    # Create Referral Program instance
+    referral_system = ReferralProgram()
+
+    # Add employees to the system
+    referral_system.add_employee(101, "John Doe")
+    referral_system.add_employee(102, "Jane Smith")
+
+    # Employees make referrals
+    referral_system.add_referral(101, "Alice Johnson", "alice.johnson@example.com")
+    referral_system.add_referral(102, "Bob Brown", "bob.brown@example.com")
+
+    # Update candidate status
+    referral_system.update_referral_status(1, "Hired")
+    referral_system.update_referral_status(2, "Under Review")
+
+    # Reward employees
+    referral_system.reward_employee(101)  # Should reward John Doe since Alice was hired
+
+    # View referrals made by an employee
+    referral_system.view_referrals(101)
+
+    # View all candidates
+    referral_system.view_all_candidates()
+
+    # Try an invalid operation (employee doesn't exist)
+    referral_system.add_referral(999, "Charlie Day", "charlie.day@example.com")
