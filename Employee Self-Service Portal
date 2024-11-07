@@ -1,0 +1,182 @@
+class Employee:
+    def __init__(self, employee_id, name, position, department):
+        self.employee_id = employee_id
+        self.name = name
+        self.position = position
+        self.department = department
+        self.personal_details = {
+            'address': '',
+            'phone': '',
+            'email': ''
+        }
+        self.pay_slips = []  # List to store pay slips
+        self.leave_requests = []  # List to store leave requests
+
+    def update_personal_details(self):
+        """Allow employees to update their personal details."""
+        print("\nUpdate Personal Details:")
+        self.personal_details['address'] = input("Enter new address: ")
+        self.personal_details['phone'] = input("Enter new phone number: ")
+        self.personal_details['email'] = input("Enter new email: ")
+        print("\nPersonal details updated successfully.")
+
+    def view_pay_slips(self):
+        """View employee's pay slips."""
+        print("\nYour Pay Slips:")
+        if self.pay_slips:
+            for i, slip in enumerate(self.pay_slips, start=1):
+                print(f"Pay Slip {i}: {slip}")
+        else:
+            print("No pay slips available.")
+    
+    def request_leave(self):
+        """Request time off."""
+        print("\nRequest Time Off:")
+        leave_type = input("Enter leave type (e.g., Vacation, Sick, Personal): ")
+        leave_days = int(input("Enter number of days: "))
+        leave_request = {
+            'leave_type': leave_type,
+            'leave_days': leave_days,
+            'status': 'Pending'
+        }
+        self.leave_requests.append(leave_request)
+        print(f"\nLeave request submitted for {leave_days} days of {leave_type} leave.")
+
+    def view_leave_requests(self):
+        """View status of leave requests."""
+        print("\nYour Leave Requests:")
+        if self.leave_requests:
+            for i, request in enumerate(self.leave_requests, start=1):
+                print(f"Request {i}: {request['leave_type']} - {request['leave_days']} days - Status: {request['status']}")
+        else:
+            print("No leave requests found.")
+
+    def show_dashboard(self):
+        """Display the employee's self-service dashboard."""
+        print(f"\nWelcome, {self.name} ({self.position} - {self.department})!")
+        print("Employee Self-Service Portal")
+        print("1. Update Personal Details")
+        print("2. View Pay Slips")
+        print("3. Request Time Off")
+        print("4. View Leave Requests")
+        print("5. Exit Portal")
+
+    def handle_choice(self, choice):
+        """Handle employee's menu selection."""
+        if choice == 1:
+            self.update_personal_details()
+        elif choice == 2:
+            self.view_pay_slips()
+        elif choice == 3:
+            self.request_leave()
+        elif choice == 4:
+            self.view_leave_requests()
+        elif choice == 5:
+            print("Exiting portal. Goodbye!")
+            return False
+        else:
+            print("Invalid choice. Please try again.")
+        return True
+
+
+class EmployeeSelfServicePortal:
+    def __init__(self):
+        self.employees = {}
+        self.logged_in_employee = None
+
+    def add_employee(self, employee_id, name, position, department):
+        """Add a new employee to the portal."""
+        employee = Employee(employee_id, name, position, department)
+        self.employees[employee_id] = employee
+        print(f"Employee {name} added to the system.")
+
+    def login(self, employee_id):
+        """Simulate employee login."""
+        if employee_id in self.employees:
+            self.logged_in_employee = self.employees[employee_id]
+            print(f"\nWelcome {self.logged_in_employee.name}! You are logged in.")
+        else:
+            print("\nEmployee not found. Please try again.")
+
+    def run(self):
+        """Run the Employee Self-Service Portal."""
+        while True:
+            if not self.logged_in_employee:
+                employee_id = int(input("Enter Employee ID to login: "))
+                self.login(employee_id)
+                if not self.logged_in_employee:
+                    continue
+
+            self.logged_in_employee.show_dashboard()
+            choice = int(input("Choose an option: "))
+            if not self.logged_in_employee.handle_choice(choice):
+                break
+
+
+# Example Usage
+
+if __name__ == "__main__":
+    portal = EmployeeSelfServicePortal()
+
+    # Add some employees to the system
+    portal.add_employee(101, "John Doe", "Software Engineer", "IT")
+    portal.add_employee(102, "Jane Smith", "HR Manager", "HR")
+
+    # Run the portal
+    portal.run()
+--------------------------------------------
+EXAMPLE DATA
+------------------------------------------
+Enter Employee ID to login: 101
+
+Welcome John Doe! You are logged in.
+
+Employee Self-Service Portal
+1. Update Personal Details
+2. View Pay Slips
+3. Request Time Off
+4. View Leave Requests
+5. Exit Portal
+Choose an option: 1
+
+Update Personal Details:
+Enter new address: 1234 Elm St
+Enter new phone number: 555-1234
+Enter new email: john.doe@example.com
+
+Personal details updated successfully.
+
+Employee Self-Service Portal
+1. Update Personal Details
+2. View Pay Slips
+3. Request Time Off
+4. View Leave Requests
+5. Exit Portal
+Choose an option: 3
+
+Request Time Off:
+Enter leave type (e.g., Vacation, Sick, Personal): Vacation
+Enter number of days: 5
+
+Leave request submitted for 5 days of Vacation leave.
+
+Employee Self-Service Portal
+1. Update Personal Details
+2. View Pay Slips
+3. Request Time Off
+4. View Leave Requests
+5. Exit Portal
+Choose an option: 4
+
+Your Leave Requests:
+Request 1: Vacation - 5 days - Status: Pending
+
+Employee Self-Service Portal
+1. Update Personal Details
+2. View Pay Slips
+3. Request Time Off
+4. View Leave Requests
+5. Exit Portal
+Choose an option: 5
+
+Exiting portal. Goodbye!
