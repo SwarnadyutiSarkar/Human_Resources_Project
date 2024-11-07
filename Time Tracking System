@@ -1,0 +1,145 @@
+import time
+from datetime import datetime, timedelta
+
+class Employee:
+    def __init__(self, employee_id, name, position):
+        self.employee_id = employee_id
+        self.name = name
+        self.position = position
+        self.attendance_records = []  # List to store attendance records
+        self.total_hours = 0  # Total hours worked
+        self.overtime_hours = 0  # Total overtime worked
+
+    def clock_in(self):
+        """Record clock-in time."""
+        self.clock_in_time = datetime.now()
+        print(f"{self.name} clocked in at {self.clock_in_time.strftime('%Y-%m-%d %H:%M:%S')}.")
+
+    def clock_out(self):
+        """Record clock-out time and calculate hours worked."""
+        clock_out_time = datetime.now()
+        work_duration = clock_out_time - self.clock_in_time
+        work_hours = work_duration.total_seconds() / 3600  # Convert seconds to hours
+
+        # Overtime calculation (if over 8 hours worked)
+        regular_hours = 8
+        if work_hours > regular_hours:
+            overtime = work_hours - regular_hours
+            self.overtime_hours += overtime
+            self.total_hours += regular_hours  # Add regular hours
+            print(f"Overtime: {overtime:.2f} hours.")
+        else:
+            self.total_hours += work_hours
+        
+        # Save the record (date, clock-in, clock-out, hours worked)
+        self.attendance_records.append({
+            'date': clock_out_time.strftime('%Y-%m-%d'),
+            'clock_in': self.clock_in_time.strftime('%H:%M:%S'),
+            'clock_out': clock_out_time.strftime('%H:%M:%S'),
+            'hours_worked': work_hours
+        })
+
+        print(f"{self.name} clocked out at {clock_out_time.strftime('%Y-%m-%d %H:%M:%S')}.")
+        print(f"Hours Worked: {work_hours:.2f} hours.")
+        print(f"Total Hours Worked: {self.total_hours:.2f} hours.")
+        print(f"Total Overtime: {self.overtime_hours:.2f} hours.")
+
+    def view_attendance(self):
+        """View employee's attendance records."""
+        print(f"\nAttendance Records for {self.name}:")
+        if self.attendance_records:
+            for record in self.attendance_records:
+                print(f"Date: {record['date']}, Clock In: {record['clock_in']}, "
+                      f"Clock Out: {record['clock_out']}, Hours Worked: {record['hours_worked']:.2f}")
+        else:
+            print("No attendance records available.")
+    
+    def generate_report(self, period='daily'):
+        """Generate an attendance report."""
+        print(f"\n{self.name}'s {period.capitalize()} Report:")
+        if period == 'daily':
+            for record in self.attendance_records:
+                print(f"Date: {record['date']}, Hours Worked: {record['hours_worked']:.2f}")
+        elif period == 'weekly':
+            start_date = datetime.now() - timedelta(days=7)
+            for record in self.attendance_records:
+                record_date = datetime.strptime(record['date'], '%Y-%m-%d')
+                if record_date >= start_date:
+                    print(f"Date: {record['date']}, Hours Worked: {record['hours_worked']:.2f}")
+        elif period == 'monthly':
+            start_date = datetime.now() - timedelta(days=30)
+            for record in self.attendance_records:
+                record_date = datetime.strptime(record['date'], '%Y-%m-%d')
+                if record_date >= start_date:
+                    print(f"Date: {record['date']}, Hours Worked: {record['hours_worked']:.2f}")
+
+class TimeTrackingSystem:
+    def __init__(self):
+        self.employees = {}  # Dictionary to store employees by ID
+        self.logged_in_employee = None
+
+    def add_employee(self, employee_id, name, position):
+        """Add new employee to the system."""
+        if employee_id not in self.employees:
+            employee = Employee(employee_id, name, position)
+            self.employees[employee_id] = employee
+            print(f"Employee {name} added to the system.")
+        else:
+            print(f"Employee ID {employee_id} already exists.")
+
+    def login(self, employee_id):
+        """Login an employee into the system."""
+        if employee_id in self.employees:
+            self.logged_in_employee = self.employees[employee_id]
+            print(f"\nWelcome {self.logged_in_employee.name}! You are logged in.")
+        else:
+            print("\nEmployee not found. Please try again.")
+
+    def run(self):
+        """Run the time tracking system."""
+        while True:
+            if not self.logged_in_employee:
+                employee_id = int(input("Enter Employee ID to login: "))
+                self.login(employee_id)
+                if not self.logged_in_employee:
+                    continue
+
+            # Display options to the logged-in employee
+            print(f"\nWelcome to the Time Tracking System, {self.logged_in_employee.name}!")
+            print("1. Clock In")
+            print("2. Clock Out")
+            print("3. View Attendance")
+            print("4. Generate Report (Daily/Weekly/Monthly)")
+            print("5. Logout")
+            choice = int(input("Choose an option: "))
+            
+            if choice == 1:
+                self.logged_in_employee.clock_in()
+            elif choice == 2:
+                self.logged_in_employee.clock_out()
+            elif choice == 3:
+                self.logged_in_employee.view_attendance()
+            elif choice == 4:
+                period = input("Enter report period (daily/weekly/monthly): ").lower()
+                if period not in ['daily', 'weekly', 'monthly']:
+                    print("Invalid period. Please choose 'daily', 'weekly', or 'monthly'.")
+                else:
+                    self.logged_in_employee.generate_report(period)
+            elif choice == 5:
+                print(f"{self.logged_in_employee.name} has logged out.")
+                self.logged_in_employee = None
+            else:
+                print("Invalid choice. Please try again.")
+
+
+# Example Usage
+
+if __name__ == "__main__":
+    system = TimeTrackingSystem()
+
+    # Add some employees to the system
+    system.add_employee(101, "John Doe", "Software Engineer")
+    system.add_employee(102, "Jane Smith", "HR Manager")
+
+    # Run the time tracking system
+    system.run()
