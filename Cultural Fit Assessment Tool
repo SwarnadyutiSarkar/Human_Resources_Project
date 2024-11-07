@@ -1,0 +1,107 @@
+class CulturalFitAssessment:
+    def __init__(self, culture_values, ideal_scores):
+        """
+        Initializes the Cultural Fit Assessment Tool.
+        :param culture_values: A dictionary of culture values (key: value name, value: description).
+        :param ideal_scores: A dictionary of ideal scores for each culture value.
+        """
+        self.culture_values = culture_values
+        self.ideal_scores = ideal_scores
+        self.candidate_responses = {}  # Store candidate responses
+
+    def administer_survey(self, candidate_name):
+        """
+        Administers the culture fit survey to the candidate and stores their responses.
+        :param candidate_name: The name of the candidate.
+        """
+        print(f"\nCulture Fit Assessment for {candidate_name}")
+        candidate_answers = {}
+        
+        # Ask each question related to culture values
+        for value, description in self.culture_values.items():
+            print(f"\n{value}: {description}")
+            print("Rate on a scale of 1 to 5 (1: Strongly Disagree, 5: Strongly Agree):")
+            response = int(input(f"Your rating for {value}: "))
+            while response < 1 or response > 5:
+                print("Please enter a number between 1 and 5.")
+                response = int(input(f"Your rating for {value}: "))
+            candidate_answers[value] = response
+        
+        # Store candidate responses
+        self.candidate_responses[candidate_name] = candidate_answers
+        print(f"\nSurvey completed for {candidate_name}.\n")
+
+    def evaluate_fit(self, candidate_name):
+        """
+        Evaluates how well the candidate fits the organization's culture based on their responses.
+        :param candidate_name: The name of the candidate.
+        :return: A score indicating the cultural fit.
+        """
+        if candidate_name not in self.candidate_responses:
+            print(f"No survey data found for {candidate_name}. Please administer the survey first.")
+            return None
+        
+        responses = self.candidate_responses[candidate_name]
+        total_score = 0
+        ideal_score = 0
+        difference = 0
+        
+        # Calculate how closely the candidate's responses align with the ideal scores
+        for value, score in self.ideal_scores.items():
+            candidate_score = responses.get(value, 0)
+            total_score += candidate_score
+            ideal_score += score
+            difference += abs(candidate_score - score)
+        
+        fit_score = (total_score / ideal_score) * 100  # Percentage match based on ideal score
+        cultural_fit = "Excellent" if fit_score >= 85 else "Good" if fit_score >= 70 else "Needs Improvement"
+
+        print(f"\nCultural Fit Evaluation for {candidate_name}:")
+        print(f"Total Score: {total_score}/{ideal_score} (Ideal Total Score)")
+        print(f"Fit Score: {fit_score:.2f}%")
+        print(f"Cultural Fit: {cultural_fit}")
+        return fit_score
+
+    def display_candidate_report(self, candidate_name):
+        """Displays a detailed report for the candidate's cultural fit evaluation."""
+        if candidate_name not in self.candidate_responses:
+            print(f"No survey data found for {candidate_name}. Please administer the survey first.")
+            return
+        
+        responses = self.candidate_responses[candidate_name]
+        print(f"\nCultural Fit Report for {candidate_name}:")
+        for value in self.culture_values.keys():
+            print(f"{value}: {responses[value]} - Ideal: {self.ideal_scores.get(value, 'N/A')}")
+    
+# Example of initializing the tool and administering the survey
+
+if __name__ == "__main__":
+    # Define the organization's cultural values and ideal scores
+    culture_values = {
+        "Teamwork": "Collaboration and working well with others are important.",
+        "Innovation": "We value creativity and thinking outside the box.",
+        "Transparency": "Being open and honest in all communications is key.",
+        "Adaptability": "We embrace change and strive for continuous improvement.",
+        "Integrity": "We act with honesty and adhere to strong moral principles."
+    }
+    
+    ideal_scores = {
+        "Teamwork": 5,  # Ideal candidate scores 5
+        "Innovation": 4,
+        "Transparency": 5,
+        "Adaptability": 4,
+        "Integrity": 5
+    }
+
+    # Initialize the cultural fit assessment tool
+    assessment_tool = CulturalFitAssessment(culture_values, ideal_scores)
+
+    # Administer the survey to candidates
+    candidate_name = input("Enter candidate's name: ")
+    assessment_tool.administer_survey(candidate_name)
+
+    # Evaluate and display the cultural fit
+    assessment_tool.evaluate_fit(candidate_name)
+
+    # Display detailed report for the candidate
+    assessment_tool.display_candidate_report(candidate_name)
