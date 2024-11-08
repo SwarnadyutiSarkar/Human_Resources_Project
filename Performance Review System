@@ -1,0 +1,123 @@
+import datetime
+
+# Class to represent an employee
+class Employee:
+    def __init__(self, employee_id, name, email):
+        self.employee_id = employee_id
+        self.name = name
+        self.email = email
+        self.reviews = []  # List to store performance reviews for the employee
+
+    def add_review(self, review):
+        self.reviews.append(review)
+        print(f"Performance review added for {self.name}.")
+
+    def get_reviews(self):
+        return self.reviews
+
+    def get_total_average_rating(self):
+        if not self.reviews:
+            return 0
+        total_score = sum([review.get_average_rating() for review in self.reviews])
+        return total_score / len(self.reviews)
+
+# Class to represent a performance review
+class PerformanceReview:
+    def __init__(self, reviewer_name, date=datetime.datetime.now()):
+        self.reviewer_name = reviewer_name
+        self.date = date
+        self.ratings = {}  # Key: competency name, Value: score (out of 5)
+
+    def add_rating(self, competency, score):
+        if 0 <= score <= 5:
+            self.ratings[competency] = score
+        else:
+            print("Score must be between 0 and 5.")
+
+    def get_average_rating(self):
+        if not self.ratings:
+            return 0
+        return sum(self.ratings.values()) / len(self.ratings)
+
+    def get_review_summary(self):
+        summary = f"Performance Review - {self.reviewer_name} (Date: {self.date.strftime('%Y-%m-%d')})\n"
+        for competency, score in self.ratings.items():
+            summary += f"{competency}: {score}/5\n"
+        summary += f"Average Rating: {self.get_average_rating():.2f}/5\n"
+        return summary
+
+# Class to manage the performance review system
+class PerformanceReviewSystem:
+    def __init__(self):
+        self.employees = {}
+
+    def add_employee(self, employee_id, name, email):
+        if employee_id not in self.employees:
+            self.employees[employee_id] = Employee(employee_id, name, email)
+            print(f"Employee {name} added.")
+        else:
+            print(f"Employee with ID {employee_id} already exists.")
+
+    def create_performance_review(self, employee_id, reviewer_name, ratings):
+        employee = self.employees.get(employee_id)
+        if employee:
+            review = PerformanceReview(reviewer_name)
+            for competency, score in ratings.items():
+                review.add_rating(competency, score)
+            employee.add_review(review)
+        else:
+            print("Employee not found.")
+
+    def generate_employee_report(self, employee_id):
+        employee = self.employees.get(employee_id)
+        if employee:
+            print(f"\n--- Performance Report for {employee.name} ---")
+            if not employee.get_reviews():
+                print("No reviews available.")
+                return
+            for review in employee.get_reviews():
+                print(review.get_review_summary())
+            print(f"Overall Average Rating: {employee.get_total_average_rating():.2f}/5")
+        else:
+            print("Employee not found.")
+
+# Example usage of the system
+if __name__ == "__main__":
+    # Initialize the performance review system
+    system = PerformanceReviewSystem()
+
+    # Adding employees
+    system.add_employee(101, "John Doe", "john.doe@example.com")
+    system.add_employee(102, "Jane Smith", "jane.smith@example.com")
+
+    # Define competencies for performance reviews
+    competencies = ["Communication", "Teamwork", "Problem-Solving", "Leadership", "Work Quality"]
+
+    # Create and add performance reviews for employees
+    system.create_performance_review(101, "Manager A", {
+        "Communication": 4,
+        "Teamwork": 3,
+        "Problem-Solving": 5,
+        "Leadership": 3,
+        "Work Quality": 4
+    })
+
+    system.create_performance_review(101, "Manager B", {
+        "Communication": 3,
+        "Teamwork": 4,
+        "Problem-Solving": 4,
+        "Leadership": 5,
+        "Work Quality": 4
+    })
+
+    system.create_performance_review(102, "Manager A", {
+        "Communication": 5,
+        "Teamwork": 5,
+        "Problem-Solving": 4,
+        "Leadership": 4,
+        "Work Quality": 5
+    })
+
+    # Generating performance reports for employees
+    system.generate_employee_report(101)
+    system.generate_employee_report(102)
