@@ -1,0 +1,164 @@
+import datetime
+
+# Class to represent an employee
+class Employee:
+    def __init__(self, employee_id, name, email):
+        self.employee_id = employee_id
+        self.name = name
+        self.email = email
+        self.projects = {}  # Key: project_name, Value: time spent in hours
+
+    def assign_project(self, project_name):
+        if project_name not in self.projects:
+            self.projects[project_name] = 0
+            print(f"Assigned {project_name} to {self.name}.")
+        else:
+            print(f"{self.name} is already working on {project_name}.")
+
+    def log_hours(self, project_name, hours):
+        if project_name in self.projects:
+            self.projects[project_name] += hours
+            print(f"{self.name} worked {hours} hours on {project_name}. Total hours now: {self.projects[project_name]}")
+        else:
+            print(f"{self.name} is not assigned to {project_name}.")
+
+    def get_project_report(self):
+        return {project: hours for project, hours in self.projects.items()}
+
+    def get_total_hours(self):
+        return sum(self.projects.values())
+
+# Class to represent a project
+class Project:
+    def __init__(self, project_name, deadline):
+        self.project_name = project_name
+        self.deadline = deadline
+        self.team_members = []
+
+    def add_member(self, employee):
+        if employee not in self.team_members:
+            self.team_members.append(employee)
+            employee.assign_project(self.project_name)
+            print(f"{employee.name} added to {self.project_name}.")
+        else:
+            print(f"{employee.name} is already on {self.project_name}.")
+
+    def get_team_report(self):
+        print(f"\n--- Report for {self.project_name} ---")
+        for member in self.team_members:
+            hours = member.get_project_report().get(self.project_name, 0)
+            print(f"{member.name}: {hours} hours worked")
+
+    def get_project_deadline(self):
+        return self.deadline
+
+# Class to manage the remote work system
+class RemoteWorkManagementSystem:
+    def __init__(self):
+        self.employees = {}
+        self.projects = {}
+
+    def add_employee(self, employee_id, name, email):
+        if employee_id not in self.employees:
+            self.employees[employee_id] = Employee(employee_id, name, email)
+            print(f"Employee {name} added.")
+        else:
+            print(f"Employee with ID {employee_id} already exists.")
+
+    def create_project(self, project_name, deadline):
+        if project_name not in self.projects:
+            self.projects[project_name] = Project(project_name, deadline)
+            print(f"Project '{project_name}' created with deadline {deadline}.")
+        else:
+            print(f"Project '{project_name}' already exists.")
+
+    def assign_employee_to_project(self, employee_id, project_name):
+        employee = self.employees.get(employee_id)
+        project = self.projects.get(project_name)
+
+        if employee and project:
+            project.add_member(employee)
+        else:
+            print("Invalid employee or project.")
+
+    def log_work_hours(self, employee_id, project_name, hours):
+        employee = self.employees.get(employee_id)
+        if employee:
+            employee.log_hours(project_name, hours)
+        else:
+            print("Employee not found.")
+
+    def generate_project_report(self, project_name):
+        project = self.projects.get(project_name)
+        if project:
+            project.get_team_report()
+        else:
+            print("Project not found.")
+
+    def generate_employee_report(self, employee_id):
+        employee = self.employees.get(employee_id)
+        if employee:
+            total_hours = employee.get_total_hours()
+            print(f"\n--- Report for {employee.name} ---")
+            print(f"Total hours worked: {total_hours:.2f}")
+            for project, hours in employee.get_project_report().items():
+                print(f"{project}: {hours} hours")
+        else:
+            print("Employee not found.")
+
+# Example usage of the system
+if __name__ == "__main__":
+    # Initialize the management system
+    system = RemoteWorkManagementSystem()
+
+    # Adding employees
+    system.add_employee(101, "John Doe", "john.doe@example.com")
+    system.add_employee(102, "Jane Smith", "jane.smith@example.com")
+
+    # Creating projects
+    system.create_project("Website Redesign", "2024-12-15")
+    system.create_project("Mobile App Development", "2025-01-10")
+
+    # Assigning employees to projects
+    system.assign_employee_to_project(101, "Website Redesign")
+    system.assign_employee_to_project(102, "Mobile App Development")
+    system.assign_employee_to_project(101, "Mobile App Development")
+
+    # Logging hours worked
+    system.log_work_hours(101, "Website Redesign", 5)
+    system.log_work_hours(102, "Mobile App Development", 6)
+    system.log_work_hours(101, "Mobile App Development", 3)
+
+    # Generating reports
+    system.generate_project_report("Website Redesign")
+    system.generate_project_report("Mobile App Development")
+    system.generate_employee_report(101)
+    system.generate_employee_report(102)
+------------------------------------------------------------
+example output
+-----------------------------------------
+Employee John Doe added.
+Employee Jane Smith added.
+Project 'Website Redesign' created with deadline 2024-12-15.
+Project 'Mobile App Development' created with deadline 2025-01-10.
+John Doe added to Website Redesign.
+Jane Smith added to Mobile App Development.
+John Doe added to Mobile App Development.
+John Doe worked 5 hours on Website Redesign. Total hours now: 5
+Jane Smith worked 6 hours on Mobile App Development. Total hours now: 6
+John Doe worked 3 hours on Mobile App Development. Total hours now: 3
+--- Report for Website Redesign ---
+John Doe: 5 hours worked
+
+--- Report for Mobile App Development ---
+John Doe: 3 hours worked
+Jane Smith: 6 hours worked
+
+--- Report for John Doe ---
+Total hours worked: 8.00
+Website Redesign: 5 hours
+Mobile App Development: 3 hours
+
+--- Report for Jane Smith ---
+Total hours worked: 6.00
+Mobile App Development: 6 hours
