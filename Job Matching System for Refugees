@@ -1,0 +1,128 @@
+import uuid
+from datetime import datetime
+
+class Refugee:
+    def __init__(self, name, skills, experience, location):
+        self.refugee_id = str(uuid.uuid4())
+        self.name = name
+        self.skills = skills  # List of skills
+        self.experience = experience  # Years of experience
+        self.location = location
+        self.matched_jobs = []
+    
+    def update_profile(self, skills=None, experience=None, location=None):
+        if skills:
+            self.skills = skills
+        if experience:
+            self.experience = experience
+        if location:
+            self.location = location
+        print(f"Profile updated for {self.name}.")
+    
+    def view_matched_jobs(self):
+        if self.matched_jobs:
+            print(f"Matched Jobs for {self.name}:")
+            for job in self.matched_jobs:
+                print(f"- {job['job_title']} at {job['company_name']} (Location: {job['location']})")
+        else:
+            print(f"No jobs matched for {self.name} yet.")
+
+
+class Job:
+    def __init__(self, job_title, company_name, skills_required, experience_required, location):
+        self.job_id = str(uuid.uuid4())
+        self.job_title = job_title
+        self.company_name = company_name
+        self.skills_required = skills_required  # List of skills
+        self.experience_required = experience_required  # Minimum years of experience
+        self.location = location
+        self.applicants = []  # List of refugees who have applied
+    
+    def post_job(self):
+        print(f"Job posted: {self.job_title} at {self.company_name}.")
+    
+    def match_job(self, refugee):
+        # Check if the refugee's skills match the job requirements
+        skill_match = any(skill in refugee.skills for skill in self.skills_required)
+        experience_match = refugee.experience >= self.experience_required
+        location_match = refugee.location == self.location
+
+        if skill_match and experience_match and location_match:
+            self.applicants.append(refugee)
+            refugee.matched_jobs.append({
+                'job_title': self.job_title,
+                'company_name': self.company_name,
+                'location': self.location
+            })
+            print(f"{refugee.name} has been matched with the job: {self.job_title}.")
+        else:
+            print(f"{refugee.name} does not meet the criteria for the job: {self.job_title}.")
+
+
+class JobMatchingSystem:
+    def __init__(self):
+        self.refugees = []
+        self.jobs = []
+    
+    def add_refugee(self, name, skills, experience, location):
+        refugee = Refugee(name, skills, experience, location)
+        self.refugees.append(refugee)
+        print(f"Refugee {name} added to the system.")
+        return refugee
+    
+    def add_job(self, job_title, company_name, skills_required, experience_required, location):
+        job = Job(job_title, company_name, skills_required, experience_required, location)
+        self.jobs.append(job)
+        print(f"Job {job_title} posted by {company_name}.")
+        return job
+    
+    def match_jobs_for_refugee(self, refugee):
+        print(f"Matching jobs for {refugee.name}...")
+        for job in self.jobs:
+            job.match_job(refugee)
+
+    def view_all_refugees(self):
+        if not self.refugees:
+            print("No refugees in the system.")
+        else:
+            print("\n--- List of Refugees ---")
+            for refugee in self.refugees:
+                print(f"{refugee.name} (Location: {refugee.location}, Skills: {', '.join(refugee.skills)}, Experience: {refugee.experience} years)")
+    
+    def view_all_jobs(self):
+        if not self.jobs:
+            print("No jobs posted yet.")
+        else:
+            print("\n--- List of Jobs ---")
+            for job in self.jobs:
+                print(f"{job.job_title} at {job.company_name} (Location: {job.location}, Experience Required: {job.experience_required} years)")
+
+
+# Example Usage
+
+# Create the Job Matching System
+platform = JobMatchingSystem()
+
+# Add refugees
+refugee1 = platform.add_refugee("Ahmed", ["Python", "Data Analysis", "Machine Learning"], 3, "Berlin")
+refugee2 = platform.add_refugee("Fatima", ["Nursing", "Healthcare"], 5, "Munich")
+refugee3 = platform.add_refugee("Ali", ["Carpentry", "Construction"], 4, "Hamburg")
+
+# Add job postings
+job1 = platform.add_job("Data Scientist", "Tech Innovations", ["Python", "Data Analysis"], 2, "Berlin")
+job2 = platform.add_job("Nurse", "Healthcare Providers", ["Nursing", "Healthcare"], 3, "Munich")
+job3 = platform.add_job("Carpenter", "Construction Inc.", ["Carpentry", "Construction"], 4, "Hamburg")
+
+# Match jobs for refugees
+platform.match_jobs_for_refugee(refugee1)
+platform.match_jobs_for_refugee(refugee2)
+platform.match_jobs_for_refugee(refugee3)
+
+# View matched jobs for each refugee
+refugee1.view_matched_jobs()
+refugee2.view_matched_jobs()
+refugee3.view_matched_jobs()
+
+# View all refugees and jobs
+platform.view_all_refugees()
+platform.view_all_jobs()
