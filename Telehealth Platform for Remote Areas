@@ -1,0 +1,212 @@
+// App.js
+import React, { useState } from "react";
+import axios from "axios";
+import { BrowserRouter as Router, Route, Switch, Link } from "react-router-dom";
+
+const App = () => {
+  return (
+    <Router>
+      <nav>
+        <Link to="/login">Login</Link> | <Link to="/register">Register</Link>
+      </nav>
+      <Switch>
+        <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
+        <Route path="/video-consultation" component={VideoConsultation} />
+      </Switch>
+    </Router>
+  );
+};
+
+// Login Component
+const Login = () => {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post("http://localhost:5000/login", { username, password });
+      localStorage.setItem("token", response.data.token);
+      alert("Login successful!");
+    } catch (error) {
+      alert("Login failed");
+    }
+  };
+
+  return (
+    <div>
+      <h2>Login</h2>
+      <form onSubmit={handleLogin}>
+        <input type="text" placeholder="Username" onChange={(e) => setUsername(e.target.value)} />
+        <input type="password" placeholder="Password" onChange={(e) => setPassword(e.target.value)} />
+        <button type="submit">Login</button>
+      </form>
+    </div>
+  );
+};
+
+// Register Component
+const Register = () => {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post("http://localhost:5000/register", { username, password });
+      alert("Registration successful!");
+    } catch (error) {
+      alert("Registration failed");
+    }
+  };
+
+  return (
+    <div>
+      <h2>Register</h2>
+      <form onSubmit={handleRegister}>
+        <input type="text" placeholder="Username" onChange={(e) => setUsername(e.target.value)} />
+        <input type="password" placeholder="Password" onChange={(e) => setPassword(e.target.value)} />
+        <button type="submit">Register</button>
+      </form>
+    </div>
+  );
+};
+
+// Video Consultation Component (WebRTC Example)
+const VideoConsultation = () => {
+  const [hasMedia, setHasMedia] = useState(false);
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
+  const [peerConnection, setPeerConnection] = useState(null);
+
+  const startVideoCall = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    setLocalStream(stream);
+    setHasMedia(true);
+
+    const pc = new RTCPeerConnection();
+    stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+    // Set up the connection with another peer (in real-world scenarios, you'll use signaling)
+    pc.onicecandidate = (e) => {
+      if (e.candidate) {
+        // Send the candidate to the other peer using your signaling server
+      }
+    };
+
+    pc.ontrack = (e) => {
+      setRemoteStream(e.streams[0]);
+    };
+
+    setPeerConnection(pc);
+  };
+
+  const endVideoCall = () => {
+    localStream.getTracks().forEach((track) => track.stop());
+    if (peerConnection) {
+      peerConnection.close();
+    }
+    setLocalStream(null);
+    setRemoteStream(null);
+    setPeerConnection(null);
+    setHasMedia(false);
+  };
+
+  return (
+    <div>
+      <h2>Video Consultation</h2>
+      <button onClick={startVideoCall} disabled={hasMedia}>Start Call</button>
+      <button onClick={endVideoCall} disabled={!hasMedia}>End Call</button>
+      <div>
+        <h3>Local Stream</h3>
+        <video autoPlay muted ref={(video) => { if (video) video.srcObject = localStream; }}></video>
+      </div>
+      <div>
+        <h3>Remote Stream</h3>
+        <video autoPlay ref={(video) => { if (video) video.srcObject = remoteStream; }}></video>
+      </div>
+    </div>
+  );
+};
+
+export default App;
+
+-------------------------------------------------------------------------------------------------------------
+# First, you need to set up the backend and frontend separately
+
+# 1. Backend (Node.js with Express)
+# Install dependencies:
+npm init -y
+npm install express mongoose jsonwebtoken bcryptjs cors socket.io
+
+# Create server.js file
+
+// server.js
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+// Connect to MongoDB (replace with your MongoDB connection string)
+mongoose.connect("mongodb://localhost:27017/telehealth", { useNewUrlParser: true, useUnifiedTopology: true });
+
+// User Schema
+const UserSchema = new mongoose.Schema({
+    username: { type: String, required: true },
+    password: { type: String, required: true },
+    role: { type: String, default: "patient" },  // patient or doctor
+});
+const User = mongoose.model("User", UserSchema);
+
+// Auth Middleware
+const authenticateToken = (req, res, next) => {
+    const token = req.header("Authorization")?.split(" ")[1];
+    if (!token) return res.status(403).send("Access denied");
+    jwt.verify(token, "your_secret_key", (err, user) => {
+        if (err) return res.status(403).send("Invalid token");
+        req.user = user;
+        next();
+    });
+};
+
+// Register User (for simplicity, not implementing email verification)
+app.post("/register", async (req, res) => {
+    const { username, password, role } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ username, password: hashedPassword, role });
+    await user.save();
+    res.status(201).send("User registered");
+});
+
+// Login User
+app.post("/login", async (req, res) => {
+    const { username, password } = req.body;
+    const user = await User.findOne({ username });
+    if (!user) return res.status(400).send("User not found");
+    
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) return res.status(400).send("Invalid password");
+
+    const token = jwt.sign({ id: user._id, role: user.role }, "your_secret_key", { expiresIn: "1h" });
+    res.json({ token });
+});
+
+// API to create appointments (just a mock, in real scenarios this would be more complex)
+app.post("/appointments", authenticateToken, (req, res) => {
+    // In a real app, you'd save this in a database.
+    const { dateTime, doctorId, patientId } = req.body;
+    res.json({ message: "Appointment scheduled", dateTime, doctorId, patientId });
+});
+
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
+

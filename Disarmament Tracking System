@@ -1,0 +1,100 @@
+import datetime
+
+class DisarmamentTracker:
+    def __init__(self):
+        self.efforts = []  # List to store disarmament efforts
+        self.progress_reports = []  # List to store progress reports
+    
+    def add_effort(self, country, weapon_type, target_amount, start_date):
+        """
+        Add a new disarmament effort.
+        
+        :param country: Country initiating the disarmament effort
+        :param weapon_type: Type of weapon being dismantled (e.g., nuclear, chemical)
+        :param target_amount: The target number of weapons to be dismantled
+        :param start_date: Date when the disarmament effort began
+        """
+        effort = {
+            'country': country,
+            'weapon_type': weapon_type,
+            'target_amount': target_amount,
+            'start_date': start_date,
+            'dismantled_amount': 0,  # Initially no weapons dismantled
+            'status': 'Ongoing',  # Default status
+        }
+        self.efforts.append(effort)
+        print(f"Disarmament effort added: {country} aims to dismantle {target_amount} {weapon_type} weapons.")
+
+    def update_progress(self, country, weapon_type, dismantled_amount):
+        """
+        Update the progress of a specific disarmament effort.
+        
+        :param country: Country initiating the disarmament effort
+        :param weapon_type: Type of weapon being dismantled
+        :param dismantled_amount: Number of weapons dismantled so far
+        """
+        for effort in self.efforts:
+            if effort['country'] == country and effort['weapon_type'] == weapon_type:
+                effort['dismantled_amount'] = dismantled_amount
+                if dismantled_amount >= effort['target_amount']:
+                    effort['status'] = 'Completed'
+                print(f"Progress updated: {country} has dismantled {dismantled_amount} {weapon_type} weapons.")
+                return
+        print(f"No matching disarmament effort found for {country} and {weapon_type}.")
+
+    def generate_report(self):
+        """
+        Generate a report of all disarmament efforts and their current progress.
+        """
+        print("Disarmament Progress Report")
+        print("----------------------------")
+        for effort in self.efforts:
+            print(f"Country: {effort['country']}")
+            print(f"Weapon Type: {effort['weapon_type']}")
+            print(f"Target Amount: {effort['target_amount']}")
+            print(f"Dismantled Amount: {effort['dismantled_amount']}")
+            print(f"Status: {effort['status']}")
+            print(f"Start Date: {effort['start_date']}")
+            print("-" * 30)
+
+    def get_ongoing_efforts(self):
+        """
+        Retrieve a list of all ongoing disarmament efforts.
+        """
+        ongoing_efforts = [effort for effort in self.efforts if effort['status'] == 'Ongoing']
+        return ongoing_efforts
+
+    def get_completed_efforts(self):
+        """
+        Retrieve a list of all completed disarmament efforts.
+        """
+        completed_efforts = [effort for effort in self.efforts if effort['status'] == 'Completed']
+        return completed_efforts
+
+# Main Program Logic
+if __name__ == "__main__":
+    # Instantiate the disarmament tracker
+    tracker = DisarmamentTracker()
+
+    # Add some disarmament efforts
+    tracker.add_effort('Country A', 'Nuclear', 100, datetime.date(2023, 1, 1))
+    tracker.add_effort('Country B', 'Chemical', 50, datetime.date(2022, 5, 20))
+    
+    # Update progress on an effort
+    tracker.update_progress('Country A', 'Nuclear', 30)
+    tracker.update_progress('Country B', 'Chemical', 50)
+
+    # Generate a report on all efforts
+    tracker.generate_report()
+
+    # List ongoing and completed efforts
+    ongoing = tracker.get_ongoing_efforts()
+    completed = tracker.get_completed_efforts()
+    
+    print("\nOngoing Efforts:")
+    for effort in ongoing:
+        print(f"{effort['country']} - {effort['weapon_type']} - {effort['dismantled_amount']}/{effort['target_amount']}")
+
+    print("\nCompleted Efforts:")
+    for effort in completed:
+        print(f"{effort['country']} - {effort['weapon_type']} - {effort['dismantled_amount']}/{effort['target_amount']}")
