@@ -1,0 +1,199 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Middleware
+app.use(bodyParser.json());
+app.use(cors());
+
+// MongoDB connection
+mongoose.connect('mongodb://localhost:27017/interfaith_dialogue', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('Could not connect to MongoDB:', err));
+
+// Define User Model
+const UserSchema = new mongoose.Schema({
+  name: String,
+  email: String,
+  password: String,
+  religion: String,
+  role: { type: String, default: 'user' }  // role can be 'user' or 'admin'
+});
+
+const User = mongoose.model('User', UserSchema);
+
+// Define Discussion Model
+const DiscussionSchema = new mongoose.Schema({
+  title: String,
+  content: String,
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  date: { type: Date, default: Date.now }
+});
+
+const Discussion = mongoose.model('Discussion', DiscussionSchema);
+
+// Register User
+app.post('/register', async (req, res) => {
+  const { name, email, password, religion } = req.body;
+
+  const existingUser = await User.findOne({ email });
+  if (existingUser) return res.status(400).json({ message: 'User already exists' });
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const newUser = new User({ name, email, password: hashedPassword, religion });
+
+  await newUser.save();
+  res.status(201).json({ message: 'User registered successfully' });
+});
+
+// Login User
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+
+  const token = jwt.sign({ userId: user._id }, 'secretkey', { expiresIn: '1h' });
+  res.json({ token });
+});
+
+// Create new discussion
+app.post('/discussions', async (req, res) => {
+  const { title, content } = req.body;
+  const token = req.headers['authorization'];
+
+  if (!token) return res.status(401).json({ message: 'Unauthorized' });
+
+  try {
+    const decoded = jwt.verify(token, 'secretkey');
+    const user = await User.findById(decoded.userId);
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const newDiscussion = new Discussion({
+      title,
+      content,
+      createdBy: user._id
+    });
+
+    await newDiscussion.save();
+    res.status(201).json({ message: 'Discussion created successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get all discussions
+app.get('/discussions', async (req, res) => {
+  try {
+    const discussions = await Discussion.find().populate('createdBy', 'name religion');
+    res.json(discussions);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
+-------------------------------
+html
+-------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interfaith Dialogue Platform</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+  <div class="container">
+    <h1 class="mt-5">Interfaith Dialogue Platform</h1>
+    <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#discussionModal">Start New Discussion</button>
+    
+    <!-- Modal for creating a discussion -->
+    <div class="modal fade" id="discussionModal" tabindex="-1" aria-labelledby="discussionModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="discussionModalLabel">Create Discussion</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="text" id="discussionTitle" class="form-control" placeholder="Title" required>
+            <textarea id="discussionContent" class="form-control mt-3" placeholder="Content" rows="4" required></textarea>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" onclick="createDiscussion()">Post Discussion</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <h2 class="mt-5">All Discussions</h2>
+    <div id="discussionList"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Fetch all discussions and display
+    async function loadDiscussions() {
+      const response = await fetch('http://localhost:5000/discussions');
+      const discussions = await response.json();
+      const discussionList = document.getElementById('discussionList');
+      discussionList.innerHTML = discussions.map(discussion => `
+        <div class="card mt-3">
+          <div class="card-body">
+            <h5 class="card-title">${discussion.title}</h5>
+            <p class="card-text">${discussion.content}</p>
+            <footer class="blockquote-footer">By ${discussion.createdBy.name} (${discussion.createdBy.religion})</footer>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Create a new discussion
+    async function createDiscussion() {
+      const title = document.getElementById('discussionTitle').value;
+      const content = document.getElementById('discussionContent').value;
+      
+      const response = await fetch('http://localhost:5000/discussions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'your-token-here' // You will need a valid token here
+        },
+        body: JSON.stringify({ title, content })
+      });
+
+      if (response.ok) {
+        loadDiscussions();
+        document.getElementById('discussionTitle').value = '';
+        document.getElementById('discussionContent').value = '';
+        alert('Discussion created successfully!');
+      } else {
+        alert('Error creating discussion');
+      }
+    }
+
+    // Load discussions on page load
+    loadDiscussions();
+  </script>
+
+</body>
+</html>
