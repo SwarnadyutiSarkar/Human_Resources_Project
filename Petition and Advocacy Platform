@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cultural Heritage Preservation App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        header {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            overflow: hidden;
+        }
+        .site-list {
+            margin-top: 20px;
+        }
+        .site-card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin: 10px 0;
+            padding: 15px;
+            transition: transform 0.3s ease;
+        }
+        .site-card:hover {
+            transform: translateY(-5px);
+        }
+        .site-card img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        .site-card h3 {
+            font-size: 1.5em;
+            color: #333;
+        }
+        .site-card p {
+            color: #555;
+        }
+        .form-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        input[type="text"], input[type="url"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #555;
+        }
+        .search-bar {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
+        .search-bar input {
+            width: 300px;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Cultural Heritage Preservation App</h1>
+        <p>Document and Promote Cultural Heritage Sites Around the World</p>
+    </header>
+
+    <div class="container">
+
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search for heritage sites..." onkeyup="searchSites()">
+        </div>
+
+        <!-- Form Section -->
+        <div class="form-section">
+            <h2>Add New Heritage Site</h2>
+            <form id="siteForm">
+                <label for="siteName">Site Name</label>
+                <input type="text" id="siteName" required>
+                
+                <label for="siteImage">Image URL</label>
+                <input type="url" id="siteImage" required>
+                
+                <label for="siteDescription">Description</label>
+                <textarea id="siteDescription" rows="4" required></textarea>
+
+                <button type="submit">Add Site</button>
+            </form>
+        </div>
+
+        <!-- Heritage Sites List -->
+        <div class="site-list" id="siteList">
+            <!-- Site Cards will appear here -->
+        </div>
+
+    </div>
+
+    <script>
+        // Initialize an empty array to store site data
+        let heritageSites = [];
+
+        // Function to render site list
+        function renderSites() {
+            const siteListDiv = document.getElementById('siteList');
+            siteListDiv.innerHTML = ''; // Clear previous list
+
+            // Loop through each heritage site and create a card
+            heritageSites.forEach((site, index) => {
+                const siteCard = document.createElement('div');
+                siteCard.classList.add('site-card');
+                siteCard.innerHTML = `
+                    <img src="${site.image}" alt="${site.name}">
+                    <h3>${site.name}</h3>
+                    <p>${site.description}</p>
+                `;
+                siteListDiv.appendChild(siteCard);
+            });
+        }
+
+        // Event listener for form submission
+        document.getElementById('siteForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            // Get form values
+            const siteName = document.getElementById('siteName').value;
+            const siteImage = document.getElementById('siteImage').value;
+            const siteDescription = document.getElementById('siteDescription').value;
+
+            // Create a new site object
+            const newSite = {
+                name: siteName,
+                image: siteImage,
+                description: siteDescription
+            };
+
+            // Add new site to the array
+            heritageSites.push(newSite);
+
+            // Clear form fields
+            document.getElementById('siteForm').reset();
+
+            // Re-render the list of sites
+            renderSites();
+        });
+
+        // Search functionality
+        function searchSites() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filteredSites = heritageSites.filter(site => 
+                site.name.toLowerCase().includes(query) || site.description.toLowerCase().includes(query)
+            );
+
+            // Update the site list with filtered sites
+            const siteListDiv = document.getElementById('siteList');
+            siteListDiv.innerHTML = '';
+
+            filteredSites.forEach((site) => {
+                const siteCard = document.createElement('div');
+                siteCard.classList.add('site-card');
+                siteCard.innerHTML = `
+                    <img src="${site.image}" alt="${site.name}">
+                    <h3>${site.name}</h3>
+                    <p>${site.description}</p>
+                `;
+                siteListDiv.appendChild(siteCard);
+            });
+        }
+    </script>
+
+</body>
+</html>
