@@ -1,0 +1,97 @@
+# Impact Measurement Framework: Standardize Impact Measurement Across Projects
+
+import pandas as pd
+import numpy as np
+
+# Define project class to track various metrics and methods for impact measurement
+class ImpactMeasurementProject:
+    def __init__(self, project_name, project_id, goals, kpis):
+        self.project_name = project_name
+        self.project_id = project_id
+        self.goals = goals
+        self.kpis = kpis
+        self.data = pd.DataFrame(columns=kpis)
+        
+    def add_data(self, data_dict):
+        """Add data for a specific time period"""
+        if set(data_dict.keys()) == set(self.kpis):
+            self.data = self.data.append(data_dict, ignore_index=True)
+        else:
+            raise ValueError("Data keys do not match defined KPIs")
+    
+    def evaluate_impact(self):
+        """Calculate overall impact based on KPIs"""
+        impact_scores = {}
+        for kpi in self.kpis:
+            avg_value = self.data[kpi].mean()
+            impact_scores[kpi] = avg_value
+        return impact_scores
+    
+    def visualize_impact(self):
+        """Generate visualization of impact across KPIs"""
+        import matplotlib.pyplot as plt
+        
+        impact_scores = self.evaluate_impact()
+        kpis = list(impact_scores.keys())
+        scores = list(impact_scores.values())
+        
+        plt.bar(kpis, scores)
+        plt.title(f"Impact Assessment for {self.project_name}")
+        plt.xlabel("KPIs")
+        plt.ylabel("Impact Score")
+        plt.show()
+
+
+# Standardize the impact measurement framework across multiple projects
+
+class ImpactMeasurementFramework:
+    def __init__(self):
+        self.projects = {}
+        
+    def add_project(self, project_name, project_id, goals, kpis):
+        """Add a new project to the framework"""
+        new_project = ImpactMeasurementProject(project_name, project_id, goals, kpis)
+        self.projects[project_id] = new_project
+        
+    def get_project(self, project_id):
+        """Retrieve a specific project by ID"""
+        return self.projects.get(project_id, "Project not found")
+    
+    def evaluate_all_projects(self):
+        """Evaluate and return impact scores for all projects"""
+        impact_reports = {}
+        for project_id, project in self.projects.items():
+            impact_reports[project_id] = project.evaluate_impact()
+        return impact_reports
+
+
+# Example of usage
+if __name__ == "__main__":
+    # Define KPIs for the project
+    kpis = ["Social Impact", "Economic Impact", "Environmental Impact", "Stakeholder Engagement"]
+    
+    # Initialize the framework
+    framework = ImpactMeasurementFramework()
+    
+    # Add a project to the framework
+    framework.add_project("Renewable Energy Initiative", "001", 
+                          goals={"reduce carbon emissions": 20, "increase clean energy use": 30},
+                          kpis=kpis)
+    
+    # Add sample data for the project
+    project = framework.get_project("001")
+    project.add_data({"Social Impact": 4.2, "Economic Impact": 3.8, 
+                      "Environmental Impact": 4.5, "Stakeholder Engagement": 4.0})
+    project.add_data({"Social Impact": 4.5, "Economic Impact": 4.0, 
+                      "Environmental Impact": 4.7, "Stakeholder Engagement": 4.2})
+    
+    # Evaluate impact for a specific project
+    impact_score = project.evaluate_impact()
+    print(f"Impact Scores for '{project.project_name}': {impact_score}")
+    
+    # Visualize the impact assessment for the project
+    project.visualize_impact()
+    
+    # Evaluate impact for all projects in the framework
+    all_impact_reports = framework.evaluate_all_projects()
+    print("Impact Reports for all Projects:", all_impact_reports)
