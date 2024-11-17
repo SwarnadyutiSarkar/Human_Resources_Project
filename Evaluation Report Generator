@@ -1,0 +1,91 @@
+import pandas as pd
+from jinja2 import Environment, FileSystemLoader
+import pdfkit
+
+# Function to load data (you can modify this to load your evaluation data)
+def load_data():
+    # Example DataFrame for evaluation data
+    data = {
+        'Name': ['Alice', 'Bob', 'Charlie'],
+        'Position': ['Software Engineer', 'Data Scientist', 'Product Manager'],
+        'Performance Score': [85, 90, 75],
+        'Strengths': ['Great coding skills', 'Excellent problem solver', 'Strong leadership'],
+        'Areas for Improvement': ['Needs to improve teamwork', 'Should focus on communication', 'Needs to work on time management'],
+    }
+    df = pd.DataFrame(data)
+    return df
+
+# Function to generate the report content using Jinja2
+def generate_report_content(data):
+    # Initialize Jinja2 environment
+    env = Environment(loader=FileSystemLoader('templates'))
+    
+    # Load the template
+    template = env.get_template('evaluation_report_template.html')
+    
+    # Render the template with the data
+    html_content = template.render(employees=data)
+    
+    return html_content
+
+# Function to create a PDF from HTML content
+def generate_pdf_from_html(html_content, output_pdf):
+    # Convert HTML to PDF using pdfkit (ensure wkhtmltopdf is installed)
+    pdfkit.from_string(html_content, output_pdf)
+    print(f'Report saved to {output_pdf}')
+
+# Main function to generate the evaluation report
+def generate_evaluation_report():
+    # Load data for evaluation
+    data = load_data()
+
+    # Generate the HTML content for the report
+    html_content = generate_report_content(data)
+
+    # Generate the PDF report
+    output_pdf = 'evaluation_report.pdf'
+    generate_pdf_from_html(html_content, output_pdf)
+
+# Run the report generator
+if __name__ == '__main__':
+    generate_evaluation_report()
+-----------------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Evaluation Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+        h2 { color: #2d3e50; }
+    </style>
+</head>
+<body>
+    <h1>Employee Evaluation Report</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Position</th>
+                <th>Performance Score</th>
+                <th>Strengths</th>
+                <th>Areas for Improvement</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in employees %}
+                <tr>
+                    <td>{{ employee.Name }}</td>
+                    <td>{{ employee.Position }}</td>
+                    <td>{{ employee['Performance Score'] }}</td>
+                    <td>{{ employee.Strengths }}</td>
+                    <td>{{ employee['Areas for Improvement'] }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

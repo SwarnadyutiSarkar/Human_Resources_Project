@@ -1,0 +1,216 @@
+from flask import Flask, render_template, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+
+# Initialize the Flask application
+app = Flask(__name__)
+
+# Set up the database URI (SQLite in this case)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///feedback.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize the database
+db = SQLAlchemy(app)
+
+# Define a Feedback model for the database
+class Feedback(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    stakeholder_name = db.Column(db.String(100), nullable=False)
+    program_name = db.Column(db.String(100), nullable=False)
+    feedback = db.Column(db.Text, nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+
+    def __repr__(self):
+        return f'<Feedback {self.stakeholder_name}>'
+
+# Create the database tables
+with app.app_context():
+    db.create_all()
+
+# Home route - Show all feedbacks
+@app.route('/')
+def index():
+    feedbacks = Feedback.query.all()
+    return render_template('feedback_list.html', feedbacks=feedbacks)
+
+# Route for displaying the feedback form
+@app.route('/feedback', methods=['GET', 'POST'])
+def feedback():
+    if request.method == 'POST':
+        # Get data from the form
+        stakeholder_name = request.form['stakeholder_name']
+        program_name = request.form['program_name']
+        feedback_text = request.form['feedback']
+        rating = request.form['rating']
+
+        # Create a new Feedback object
+        new_feedback = Feedback(
+            stakeholder_name=stakeholder_name,
+            program_name=program_name,
+            feedback=feedback_text,
+            rating=rating
+        )
+
+        # Add the feedback to the database
+        db.session.add(new_feedback)
+        db.session.commit()
+
+        # Redirect to the home page
+        return redirect(url_for('index'))
+
+    return render_template('feedback_form.html')
+
+# Run the Flask application
+if __name__ == '__main__':
+    app.run(debug=True)
+-------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stakeholder Feedback</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Provide Your Feedback</h1>
+        <form action="/feedback" method="POST">
+            <label for="stakeholder_name">Your Name:</label>
+            <input type="text" id="stakeholder_name" name="stakeholder_name" required>
+            
+            <label for="program_name">Program Name:</label>
+            <input type="text" id="program_name" name="program_name" required>
+
+            <label for="feedback">Feedback:</label>
+            <textarea id="feedback" name="feedback" rows="4" required></textarea>
+
+            <label for="rating">Rating (1 to 5):</label>
+            <input type="number" id="rating" name="rating" min="1" max="5" required>
+
+            <button type="submit">Submit Feedback</button>
+        </form>
+    </div>
+</body>
+</html>
+-----------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stakeholder Feedbacks</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>All Stakeholder Feedbacks</h1>
+        <a href="/feedback" class="feedback-link">Provide Feedback</a>
+        <table>
+            <thead>
+                <tr>
+                    <th>Stakeholder Name</th>
+                    <th>Program Name</th>
+                    <th>Feedback</th>
+                    <th>Rating</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for feedback in feedbacks %}
+                <tr>
+                    <td>{{ feedback.stakeholder_name }}</td>
+                    <td>{{ feedback.program_name }}</td>
+                    <td>{{ feedback.feedback }}</td>
+                    <td>{{ feedback.rating }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
+
+-----------------------------------------------
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    width: 80%;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h1 {
+    color: #333;
+    text-align: center;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+label {
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+input, textarea {
+    padding: 8px;
+    margin: 5px 0 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+th {
+    background-color: #4CAF50;
+    color: white;
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.feedback-link {
+    display: inline-block;
+    margin-bottom: 20px;
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.feedback-link:hover {
+    background-color: #45a049;
+}
