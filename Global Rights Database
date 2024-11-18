@@ -1,0 +1,156 @@
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
+
+# Initialize the Flask application
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///global_rights_db.sqlite3'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Define the database models
+class Treaty(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    country = db.Column(db.String(100), nullable=False)
+    treaty_type = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    date_adopted = db.Column(db.String(10), nullable=True)  # Example format: "YYYY-MM-DD"
+    full_text = db.Column(db.Text, nullable=False)
+
+# Create the database tables
+@app.before_first_request
+def create_tables():
+    db.create_all()
+
+# Routes
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/treaties', methods=['GET', 'POST'])
+def treaties():
+    # Search and filter functionality
+    query = Treaty.query
+    title_filter = request.args.get('title')
+    country_filter = request.args.get('country')
+    treaty_type_filter = request.args.get('treaty_type')
+
+    if title_filter:
+        query = query.filter(Treaty.title.ilike(f'%{title_filter}%'))
+    if country_filter:
+        query = query.filter(Treaty.country.ilike(f'%{country_filter}%'))
+    if treaty_type_filter:
+        query = query.filter(Treaty.treaty_type.ilike(f'%{treaty_type_filter}%'))
+
+    treaties = query.all()
+    return render_template('treaties.html', treaties=treaties)
+
+@app.route('/treaty/<int:treaty_id>')
+def treaty_detail(treaty_id):
+    treaty = Treaty.query.get(treaty_id)
+    return render_template('treaty_detail.html', treaty=treaty)
+
+@app.route('/add_treaty', methods=['GET', 'POST'])
+def add_treaty():
+    if request.method == 'POST':
+        title = request.form['title']
+        country = request.form['country']
+        treaty_type = request.form['treaty_type']
+        description = request.form['description']
+        date_adopted = request.form['date_adopted']
+        full_text = request.form['full_text']
+
+        new_treaty = Treaty(
+            title=title, country=country, treaty_type=treaty_type, 
+            description=description, date_adopted=date_adopted, full_text=full_text
+        )
+        db.session.add(new_treaty)
+        db.session.commit()
+        flash('Treaty added successfully!', 'success')
+        return redirect(url_for('treaties'))
+
+    return render_template('add_treaty.html')
+
+@app.route('/search')
+def search():
+    return render_template('search.html')
+
+# Run the application
+if __name__ == '__main__':
+    app.run(debug=True)
+----------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Global Rights Database</title>
+</head>
+<body>
+    <h1>Welcome to the Global Rights Database</h1>
+    <a href="{{ url_for('treaties') }}">Browse Treaties</a><br>
+    <a href="{{ url_for('search') }}">Search Treaties</a><br>
+</body>
+</html>
+--------------------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Treaties</title>
+</head>
+<body>
+    <h1>Treaties and Laws</h1>
+    <form method="get" action="{{ url_for('treaties') }}">
+        Title: <input type="text" name="title"><br>
+        Country: <input type="text" name="country"><br>
+        Treaty Type: <input type="text" name="treaty_type"><br>
+        <input type="submit" value="Search">
+    </form>
+    <ul>
+        {% for treaty in treaties %}
+            <li><a href="{{ url_for('treaty_detail', treaty_id=treaty.id) }}">{{ treaty.title }}</a> - {{ treaty.country }} ({{ treaty.treaty_type }})</li>
+        {% endfor %}
+    </ul>
+    <a href="{{ url_for('add_treaty') }}">Add a New Treaty</a>
+</body>
+</html>
+--------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Treaty Detail</title>
+</head>
+<body>
+    <h1>{{ treaty.title }}</h1>
+    <p><strong>Country:</strong> {{ treaty.country }}</p>
+    <p><strong>Treaty Type:</strong> {{ treaty.treaty_type }}</p>
+    <p><strong>Description:</strong> {{ treaty.description }}</p>
+    <p><strong>Date Adopted:</strong> {{ treaty.date_adopted }}</p>
+    <h2>Full Text</h2>
+    <p>{{ treaty.full_text }}</p>
+    <a href="{{ url_for('treaties') }}">Back to Treaties</a>
+</body>
+</html>
+-------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Treaty</title>
+</head>
+<body>
+    <h1>Add a New Treaty</h1>
+    <form method="post">
+        Title: <input type="text" name="title"><br>
+        Country: <input type="text" name="country"><br>
+        Treaty Type: <input type="text" name="treaty_type"><br>
+        Description: <textarea name="description"></textarea><br>
+        Date Adopted: <input type="date" name="date_adopted"><br>
+        Full Text: <textarea name="full_text"></textarea><br>
+        <input type="submit" value="Add Treaty">
+    </form>
+</body>
+</html>
+-------------------------
