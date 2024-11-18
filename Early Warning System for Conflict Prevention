@@ -1,0 +1,70 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.preprocessing import StandardScaler
+
+# Step 1: Load and preprocess the data
+# Example dataset structure: 'country', 'year', 'political_stability', 'economic_indicator', 'social_unrest', 'conflict_occurred'
+# Assume you have a CSV with this data
+df = pd.read_csv('conflict_data.csv')
+
+# Drop rows with missing values
+df.dropna(inplace=True)
+
+# Feature engineering: Select features and target
+features = ['political_stability', 'economic_indicator', 'social_unrest']
+target = 'conflict_occurred'  # Binary outcome: 0 for no conflict, 1 for conflict
+
+X = df[features]
+y = df[target]
+
+# Normalize the feature data
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Step 2: Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.3, random_state=42)
+
+# Step 3: Train a model
+# We'll use Random Forest for classification
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Step 4: Make predictions
+y_pred = model.predict(X_test)
+
+# Step 5: Evaluate the model
+print("Classification Report:")
+print(classification_report(y_test, y_pred))
+
+print("Confusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+
+print("Accuracy Score:", accuracy_score(y_test, y_pred))
+
+# Step 6: Visualize feature importance (optional)
+feature_importance = model.feature_importances_
+plt.bar(features, feature_importance)
+plt.title('Feature Importance')
+plt.xlabel('Features')
+plt.ylabel('Importance')
+plt.show()
+
+# Step 7: Predict potential conflicts on new data
+# Assume new_data is a new dataset of features for prediction
+# Example: new_data = pd.DataFrame({'political_stability': [2.5, 3.1], 'economic_indicator': [0.6, 0.7], 'social_unrest': [0.3, 0.5]})
+new_data = pd.DataFrame({
+    'political_stability': [2.5, 3.1], 
+    'economic_indicator': [0.6, 0.7], 
+    'social_unrest': [0.3, 0.5]
+})
+
+new_data_scaled = scaler.transform(new_data)
+predictions = model.predict(new_data_scaled)
+
+print("Predictions for new data (0 = No conflict, 1 = Potential conflict):")
+print(predictions)
+
