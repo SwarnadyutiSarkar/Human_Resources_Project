@@ -1,0 +1,134 @@
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+
+# Initialize Flask application and database
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///refugee_learning_platform.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Database Models
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+    language_preference = db.Column(db.String(50), nullable=False)
+    progress = db.relationship('Progress', backref='user', lazy=True)
+
+class Course(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.String(500), nullable=False)
+    lessons = db.relationship('Lesson', backref='course', lazy=True)
+
+class Lesson(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+
+class Progress(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id'), nullable=False)
+    completed = db.Column(db.Boolean, default=False)
+
+# Initialize the database
+@app.before_first_request
+def create_tables():
+    db.create_all()
+
+# Routes
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        password = generate_password_hash(request.form['password'], method='sha256')
+        language_preference = request.form['language_preference']
+        
+        # Check if the user already exists
+        user = User.query.filter_by(email=email).first()
+        if user:
+            flash('Email already registered!', 'danger')
+            return redirect(url_for('login'))
+        
+        # Create new user
+        new_user = User(name=name, email=email, password=password, language_preference=language_preference)
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('Registration successful! Please login to continue.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        
+        user = User.query.filter_by(email=email).first()
+        if user and check_password_hash(user.password, password):
+            session['user_id'] = user.id
+            flash('Login successful!', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Invalid email or password.', 'danger')
+    
+    return render_template('login.html')
+
+@app.route('/dashboard')
+def dashboard():
+    if 'user_id' not in session:
+        flash('Please log in to access your dashboard.', 'warning')
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    courses = Course.query.all()
+    return render_template('dashboard.html', user=user, courses=courses)
+
+@app.route('/course/<int:course_id>')
+def course(course_id):
+    if 'user_id' not in session:
+        flash('Please log in to access the course.', 'warning')
+        return redirect(url_for('login'))
+
+    course = Course.query.get(course_id)
+    lessons = Lesson.query.filter_by(course_id=course_id).all()
+    return render_template('course.html', course=course, lessons=lessons)
+
+@app.route('/lesson/<int:lesson_id>', methods=['GET', 'POST'])
+def lesson(lesson_id):
+    if 'user_id' not in session:
+        flash('Please log in to access the lesson.', 'warning')
+        return redirect(url_for('login'))
+
+    lesson = Lesson.query.get(lesson_id)
+    user = User.query.get(session['user_id'])
+    progress = Progress.query.filter_by(user_id=user.id, lesson_id=lesson_id).first()
+
+    if request.method == 'POST':
+        if not progress:
+            new_progress = Progress(user_id=user.id, lesson_id=lesson_id, completed=True)
+            db.session.add(new_progress)
+            db.session.commit()
+            flash('Lesson completed!', 'success')
+        else:
+            flash('You have already completed this lesson.', 'info')
+        return redirect(url_for('dashboard'))
+
+    return render_template('lesson.html', lesson=lesson)
+
+# Run the app
+if __name__ == '__main__':
+    app.run(debug=True)
