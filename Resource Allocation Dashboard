@@ -1,0 +1,105 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import linprog
+
+# Sample Data: Available resources and demand in various regions (this is hypothetical data)
+# Columns: Region, Demand, Available Resources
+regions_data = {
+    'Region': ['North', 'South', 'East', 'West'],
+    'Demand': [1500, 2500, 1800, 1200],  # Demand in units (e.g., number of food supplies, medical kits, etc.)
+    'Available_Resources': [5000, 4000, 3500, 4500]  # Available resources (e.g., amount of supplies available)
+}
+
+# Create a DataFrame from the sample data
+df = pd.DataFrame(regions_data)
+
+# Function to visualize current resource allocation and demand
+def plot_resources_and_demand(df):
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Plotting the available resources vs. demand for each region
+    x = np.arange(len(df))
+    ax.bar(x - 0.2, df['Available_Resources'], 0.4, label='Available Resources', color='skyblue')
+    ax.bar(x + 0.2, df['Demand'], 0.4, label='Demand', color='lightcoral')
+
+    ax.set_xlabel('Regions')
+    ax.set_ylabel('Units')
+    ax.set_title('Available Resources vs. Demand in Different Regions')
+    ax.set_xticks(x)
+    ax.set_xticklabels(df['Region'])
+    ax.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+# Function to optimize resource allocation based on available resources and demand
+def optimize_resource_allocation(df):
+    # Linear programming to optimize the distribution of resources
+    # We aim to minimize the sum of excess resources while meeting the demand in each region
+    c = np.zeros(len(df))  # Objective function: we don't care about minimizing any cost, just the distribution
+    A_eq = np.ones((1, len(df)))  # Equality constraint: all resources should be allocated
+    b_eq = [sum(df['Available_Resources'])]  # Total available resources to allocate
+    
+    # Demand constraints (ensure allocation is at least the demand for each region)
+    A_ub = np.eye(len(df))  # Upper-bound constraint matrix
+    b_ub = df['Demand'].values  # Demand values for each region (no allocation below demand)
+
+    # Solve the linear programming problem using linprog
+    res = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=[(0, r) for r in df['Available_Resources']], method='highs')
+
+    if res.success:
+        allocation = res.x
+        df['Optimized_Allocation'] = allocation
+        df['Excess_Resources'] = df['Available_Resources'] - allocation
+        return df
+    else:
+        print("Optimization failed")
+        return df
+
+# Function to visualize optimized allocation
+def plot_optimized_allocation(df):
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Plotting the optimized allocation
+    x = np.arange(len(df))
+    ax.bar(x - 0.2, df['Available_Resources'], 0.4, label='Available Resources', color='skyblue')
+    ax.bar(x + 0.2, df['Optimized_Allocation'], 0.4, label='Optimized Allocation', color='lightgreen')
+
+    ax.set_xlabel('Regions')
+    ax.set_ylabel('Units')
+    ax.set_title('Optimized Resource Allocation for Humanitarian Aid')
+    ax.set_xticks(x)
+    ax.set_xticklabels(df['Region'])
+    ax.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+# Function to generate a summary of the allocation results
+def display_allocation_summary(df):
+    print("\nOptimized Resource Allocation Summary:")
+    print(df[['Region', 'Available_Resources', 'Demand', 'Optimized_Allocation', 'Excess_Resources']])
+
+# Main function to execute the Resource Allocation Dashboard
+def main():
+    print("Humanitarian Aid Resource Allocation Dashboard")
+    
+    # Step 1: Display the current resources vs. demand
+    print("\nVisualizing Resources and Demand:")
+    plot_resources_and_demand(df)
+
+    # Step 2: Optimize resource allocation
+    print("\nOptimizing Resource Allocation...")
+    df_optimized = optimize_resource_allocation(df)
+    
+    # Step 3: Display allocation results
+    display_allocation_summary(df_optimized)
+
+    # Step 4: Visualize the optimized allocation
+    print("\nVisualizing Optimized Resource Allocation:")
+    plot_optimized_allocation(df_optimized)
+
+# Run the Resource Allocation Dashboard
+if __name__ == '__main__':
+    main()

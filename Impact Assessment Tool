@@ -1,0 +1,91 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Sample Data (in real scenario, this could come from an API or a database)
+# Columns: Project_ID, Financial_Performance, Social_Impact, Environmental_Sustainability, Risk_Assessment
+data = {
+    'Project_ID': [101, 102, 103, 104],
+    'Financial_Performance': [75, 85, 50, 65],
+    'Social_Impact': [80, 70, 60, 90],
+    'Environmental_Sustainability': [60, 80, 50, 40],
+    'Risk_Assessment': [30, 20, 50, 40]
+}
+
+# Create a DataFrame from the sample data
+df = pd.DataFrame(data)
+
+# Function to calculate the effectiveness score for a project
+def calculate_effectiveness(row):
+    # Weights for different indicators (customize as needed)
+    weights = {
+        'Financial_Performance': 0.4,   # 40% weight
+        'Social_Impact': 0.3,            # 30% weight
+        'Environmental_Sustainability': 0.2,  # 20% weight
+        'Risk_Assessment': 0.1           # 10% weight
+    }
+    
+    # Calculate the weighted score
+    score = (
+        row['Financial_Performance'] * weights['Financial_Performance'] +
+        row['Social_Impact'] * weights['Social_Impact'] +
+        row['Environmental_Sustainability'] * weights['Environmental_Sustainability'] +
+        (100 - row['Risk_Assessment']) * weights['Risk_Assessment']  # Invert risk score (lower risk = better)
+    )
+    return score
+
+# Apply the effectiveness calculation to each project in the DataFrame
+df['Effectiveness_Score'] = df.apply(calculate_effectiveness, axis=1)
+
+# Function to plot project effectiveness
+def plot_project_effectiveness(df):
+    # Sort projects by effectiveness score
+    df_sorted = df.sort_values(by='Effectiveness_Score', ascending=False)
+
+    # Plotting the effectiveness scores
+    plt.figure(figsize=(10, 6))
+    plt.bar(df_sorted['Project_ID'].astype(str), df_sorted['Effectiveness_Score'], color='teal')
+    plt.xlabel('Project ID')
+    plt.ylabel('Effectiveness Score')
+    plt.title('Impact Assessment: Project Effectiveness')
+    plt.xticks(rotation=45)
+    plt.show()
+
+# Function to evaluate overall project portfolio
+def evaluate_portfolio(df):
+    # Calculate the average effectiveness score for the portfolio
+    avg_effectiveness = df['Effectiveness_Score'].mean()
+    
+    print(f"Average Effectiveness Score of All Projects: {avg_effectiveness:.2f}")
+
+    # Determine which projects are high-impact (above average) or low-impact (below average)
+    high_impact_projects = df[df['Effectiveness_Score'] > avg_effectiveness]
+    low_impact_projects = df[df['Effectiveness_Score'] <= avg_effectiveness]
+
+    print(f"\nHigh-Impact Projects (Score > {avg_effectiveness:.2f}):")
+    print(high_impact_projects[['Project_ID', 'Effectiveness_Score']])
+
+    print(f"\nLow-Impact Projects (Score <= {avg_effectiveness:.2f}):")
+    print(low_impact_projects[['Project_ID', 'Effectiveness_Score']])
+
+# Main function to execute the Impact Assessment Tool
+def main():
+    print("Impact Assessment Tool: Evaluating Project Effectiveness")
+
+    # Step 1: Display the project data (for demonstration purposes)
+    print("\nProject Data:")
+    print(df)
+    
+    # Step 2: Calculate effectiveness scores for all projects
+    print("\nCalculating Effectiveness Scores...")
+    df['Effectiveness_Score'] = df.apply(calculate_effectiveness, axis=1)
+
+    # Step 3: Evaluate the overall portfolio
+    evaluate_portfolio(df)
+
+    # Step 4: Plot project effectiveness
+    plot_project_effectiveness(df)
+
+# Run the Impact Assessment Tool
+if __name__ == '__main__':
+    main()
