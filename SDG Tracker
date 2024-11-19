@@ -1,0 +1,75 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import requests
+
+# Function to retrieve SDG data (assuming it is available as a CSV or through an API)
+def fetch_sdg_data():
+    # If using an API, you can use requests to fetch the data
+    # For example: response = requests.get('API_URL')
+    # sdg_data = response.json()
+    
+    # Placeholder for CSV data (replace with actual data source)
+    url = 'https://example.com/sdg_data.csv'  # Replace with your actual data URL
+    sdg_data = pd.read_csv(url)
+    return sdg_data
+
+# Function to clean and prepare the data
+def clean_sdg_data(sdg_data):
+    # Remove rows with missing country or SDG progress data
+    sdg_data = sdg_data.dropna(subset=['Country', 'SDG_Progress'])
+    
+    # Normalize progress data if necessary (e.g., between 0 and 100)
+    # For example, if progress is in percentage, ensure it's correctly formatted
+    sdg_data['SDG_Progress'] = sdg_data['SDG_Progress'].astype(float)
+    
+    return sdg_data
+
+# Function to visualize SDG progress for a specific country or region
+def plot_sdg_progress(sdg_data, country):
+    country_data = sdg_data[sdg_data['Country'] == country]
+    
+    if country_data.empty:
+        print(f"No data available for {country}")
+        return
+    
+    # Create a plot of SDG progress for the given country
+    plt.figure(figsize=(10, 6))
+    plt.bar(country_data['SDG_ID'], country_data['SDG_Progress'], color='skyblue')
+    plt.xlabel('SDG ID')
+    plt.ylabel('Progress (%)')
+    plt.title(f"SDG Progress for {country}")
+    plt.xticks(rotation=90)
+    plt.show()
+
+# Function to summarize global progress on SDGs
+def summarize_global_progress(sdg_data):
+    # Aggregate data by SDG and calculate mean progress
+    global_progress = sdg_data.groupby('SDG_ID')['SDG_Progress'].mean().reset_index()
+    
+    # Create a plot of the global progress on SDGs
+    plt.figure(figsize=(10, 6))
+    plt.bar(global_progress['SDG_ID'], global_progress['SDG_Progress'], color='lightcoral')
+    plt.xlabel('SDG ID')
+    plt.ylabel('Average Progress (%)')
+    plt.title('Global SDG Progress')
+    plt.xticks(rotation=90)
+    plt.show()
+
+# Main function to execute the SDG Tracker
+def main():
+    # Step 1: Fetch SDG data
+    sdg_data = fetch_sdg_data()
+
+    # Step 2: Clean the data
+    sdg_data = clean_sdg_data(sdg_data)
+    
+    # Step 3: Optionally visualize SDG progress for a specific country
+    country = input("Enter a country name to view its SDG progress: ")
+    plot_sdg_progress(sdg_data, country)
+    
+    # Step 4: Summarize global SDG progress
+    summarize_global_progress(sdg_data)
+
+# Run the SDG Tracker
+if __name__ == '__main__':
+    main()
