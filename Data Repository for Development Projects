@@ -1,0 +1,158 @@
+import uuid
+import random
+import pandas as pd
+import matplotlib.pyplot as plt
+
+class DevelopmentProject:
+    def __init__(self, name, region, objective, budget, start_date, end_date):
+        """
+        Initialize the development project with key details.
+        
+        :param name: Name of the project
+        :param region: Geographical region where the project is being implemented
+        :param objective: Objective of the project (e.g., "Build a hospital")
+        :param budget: Total allocated budget for the project (in USD)
+        :param start_date: Start date of the project
+        :param end_date: End date of the project
+        """
+        self.id = uuid.uuid4()
+        self.name = name
+        self.region = region
+        self.objective = objective
+        self.budget = budget
+        self.start_date = start_date
+        self.end_date = end_date
+        self.resources = {'funding': budget, 'manpower': 0, 'materials': []}
+        self.milestones = []
+        self.status = 'Not Started'
+
+    def add_milestone(self, milestone_name, due_date, status='Not Started'):
+        """Add a milestone to the project."""
+        milestone = {'name': milestone_name, 'due_date': due_date, 'status': status}
+        self.milestones.append(milestone)
+
+    def update_status(self, milestone_name, status):
+        """Update the status of a specific milestone."""
+        for milestone in self.milestones:
+            if milestone['name'] == milestone_name:
+                milestone['status'] = status
+                print(f"Milestone '{milestone_name}' status updated to '{status}'.")
+
+    def allocate_resources(self, funding=0, manpower=0, materials=[]):
+        """Allocate resources to the project."""
+        self.resources['funding'] += funding
+        self.resources['manpower'] += manpower
+        self.resources['materials'].extend(materials)
+        print(f"Resources allocated: Funding: ${funding}, Manpower: {manpower} persons, Materials: {materials}")
+
+    def get_project_status(self):
+        """Calculate the overall project status based on completed milestones."""
+        completed_milestones = sum(1 for milestone in self.milestones if milestone['status'] == 'Completed')
+        total_milestones = len(self.milestones)
+        completion_percentage = (completed_milestones / total_milestones) * 100 if total_milestones > 0 else 0
+        return f"Project: {self.name} - {completion_percentage}% Complete"
+
+    def get_budget_spent(self):
+        """Calculate the total budget spent based on allocated resources."""
+        return self.resources['funding']
+
+    def get_milestones(self):
+        """Get a list of project milestones."""
+        return self.milestones
+
+    def get_resources(self):
+        """Get the current resources allocated to the project."""
+        return self.resources
+
+
+class ProjectRepository:
+    def __init__(self):
+        """Initialize the project repository."""
+        self.projects = {}
+
+    def add_project(self, project):
+        """Add a new project to the repository."""
+        self.projects[project.id] = project
+        print(f"Project '{project.name}' added to the repository.")
+
+    def get_project(self, project_id):
+        """Retrieve a project by its ID."""
+        return self.projects.get(project_id, None)
+
+    def get_all_projects(self):
+        """Retrieve all projects in the repository."""
+        return list(self.projects.values())
+
+    def track_project_progress(self):
+        """Track and display the progress of all projects in the repository."""
+        for project in self.projects.values():
+            print(project.get_project_status())
+
+    def visualize_budget_spending(self):
+        """Visualize budget spending for all projects."""
+        project_names = [project.name for project in self.projects.values()]
+        budget_spent = [project.get_budget_spent() for project in self.projects.values()]
+
+        df = pd.DataFrame({'Project': project_names, 'Budget Spent ($)': budget_spent})
+        df.sort_values(by='Budget Spent ($)', ascending=False, inplace=True)
+
+        plt.figure(figsize=(10, 6))
+        plt.barh(df['Project'], df['Budget Spent ($)'], color='skyblue')
+        plt.xlabel('Budget Spent ($)')
+        plt.title('Budget Spending on Development Projects')
+        plt.show()
+
+
+# Example usage of the Data Repository for Development Projects
+
+if __name__ == "__main__":
+    # Initialize the project repository
+    repo = ProjectRepository()
+
+    # Create some development projects
+    project_1 = DevelopmentProject(
+        name="Hospital Construction",
+        region="Sub-Saharan Africa",
+        objective="Build a modern hospital with advanced medical equipment",
+        budget=5000000,
+        start_date="2024-01-01",
+        end_date="2026-12-31"
+    )
+    project_2 = DevelopmentProject(
+        name="Water Supply System",
+        region="South Asia",
+        objective="Develop a sustainable water supply system for rural areas",
+        budget=3000000,
+        start_date="2024-02-01",
+        end_date="2025-12-31"
+    )
+    
+    # Add projects to the repository
+    repo.add_project(project_1)
+    repo.add_project(project_2)
+
+    # Add milestones to projects
+    project_1.add_milestone("Groundbreaking Ceremony", "2024-06-01")
+    project_1.add_milestone("Construction Phase 1", "2025-06-01")
+    project_1.add_milestone("Equipment Installation", "2026-06-01")
+
+    project_2.add_milestone("Survey and Planning", "2024-07-01")
+    project_2.add_milestone("Phase 1 - Water Pipeline", "2025-05-01")
+    project_2.add_milestone("Water Treatment System", "2025-12-01")
+
+    # Allocate resources to the projects
+    project_1.allocate_resources(funding=1000000, manpower=200, materials=["Steel", "Concrete"])
+    project_2.allocate_resources(funding=500000, manpower=150, materials=["Pipes", "Water Pumps"])
+
+    # Update milestone status
+    project_1.update_status("Groundbreaking Ceremony", "Completed")
+    project_1.update_status("Construction Phase 1", "In Progress")
+    project_2.update_status("Survey and Planning", "Completed")
+
+    # Track project progress
+    print("\nProject Progress Report:")
+    repo.track_project_progress()
+
+    # Visualize the budget spending of all projects
+    print("\nVisualizing Budget Spending:")
+    repo.visualize_budget_spending()
