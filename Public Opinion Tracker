@@ -1,0 +1,159 @@
+import random
+import matplotlib.pyplot as plt
+import numpy as np
+from datetime import datetime
+
+
+class Survey:
+    def __init__(self, title, questions):
+        """
+        Initialize a survey.
+        
+        :param title: Title of the survey
+        :param questions: List of survey questions (strings)
+        """
+        self.title = title
+        self.questions = questions
+        self.responses = []
+        self.timestamp = datetime.now()
+
+    def collect_responses(self, participants):
+        """
+        Collect responses from participants. Each participant answers all questions.
+        
+        :param participants: List of participants (Researcher objects)
+        """
+        for participant in participants:
+            response = []
+            for question in self.questions:
+                sentiment = random.choice(['positive', 'neutral', 'negative'])
+                response.append(sentiment)
+            self.responses.append(response)
+            print(f"Survey responses collected from {participant.name}")
+
+    def get_sentiment_analysis(self):
+        """
+        Analyze sentiment of all responses in the survey.
+        
+        :return: Dictionary containing positive, neutral, and negative counts.
+        """
+        sentiment_counts = {'positive': 0, 'neutral': 0, 'negative': 0}
+        for response in self.responses:
+            for sentiment in response:
+                sentiment_counts[sentiment] += 1
+        return sentiment_counts
+
+
+class Researcher:
+    def __init__(self, name, country, interests):
+        """
+        Initialize a researcher with basic information.
+        
+        :param name: Name of the researcher
+        :param country: Country of the researcher
+        :param interests: Research interests (list of strings)
+        """
+        self.name = name
+        self.country = country
+        self.interests = interests
+
+    def participate_in_survey(self, survey):
+        """Researcher participates in the survey, providing responses."""
+        survey.collect_responses([self])
+
+
+class PublicOpinionTracker:
+    def __init__(self):
+        """Initialize the public opinion tracker."""
+        self.surveys = []
+        self.participants = []
+        self.survey_trends = []
+
+    def register_participant(self, name, country, interests):
+        """Register a participant (researcher or public member)."""
+        researcher = Researcher(name, country, interests)
+        self.participants.append(researcher)
+        print(f"Participant {name} registered.")
+        return researcher
+
+    def create_survey(self, title, questions):
+        """Create a new survey."""
+        survey = Survey(title, questions)
+        self.surveys.append(survey)
+        print(f"Survey titled '{title}' created.")
+        return survey
+
+    def track_sentiment_over_time(self, survey, time_period=10):
+        """
+        Track sentiment analysis over time for a survey.
+        
+        :param survey: The survey object
+        :param time_period: Number of months over which sentiment will be tracked
+        """
+        sentiment_over_time = {'positive': [], 'neutral': [], 'negative': []}
+        for month in range(time_period):
+            sentiment = survey.get_sentiment_analysis()
+            sentiment_over_time['positive'].append(sentiment['positive'])
+            sentiment_over_time['neutral'].append(sentiment['neutral'])
+            sentiment_over_time['negative'].append(sentiment['negative'])
+        
+        # Store the trend data for later visualization
+        self.survey_trends.append((survey.title, sentiment_over_time))
+        print(f"Sentiment tracked over {time_period} months for survey '{survey.title}'.")
+
+    def plot_sentiment_trends(self):
+        """Plot the sentiment trends over time for all surveys."""
+        plt.figure(figsize=(12, 6))
+
+        for title, trend in self.survey_trends:
+            months = np.arange(1, len(trend['positive']) + 1)
+            plt.plot(months, trend['positive'], label=f"{title} - Positive", linestyle='-', marker='o')
+            plt.plot(months, trend['neutral'], label=f"{title} - Neutral", linestyle='--', marker='x')
+            plt.plot(months, trend['negative'], label=f"{title} - Negative", linestyle='-.', marker='s')
+
+        plt.title("Public Sentiment Trends Over Time")
+        plt.xlabel("Months")
+        plt.ylabel("Sentiment Count")
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+
+# Example Usage of the Public Opinion Tracker
+
+if __name__ == "__main__":
+    # Initialize the public opinion tracker
+    tracker = PublicOpinionTracker()
+
+    # Register participants (researchers or public members)
+    researcher_1 = tracker.register_participant("Dr. Alice", "USA", ["Climate Change", "Sustainability"])
+    researcher_2 = tracker.register_participant("Dr. Bob", "UK", ["Artificial Intelligence", "Robotics"])
+
+    # Create a survey on "Climate Change Awareness"
+    survey_1 = tracker.create_survey(
+        "Climate Change Awareness Survey",
+        ["Do you believe climate change is a major issue?", "Should governments act to reduce carbon emissions?", "Are renewable energy sources viable alternatives?"]
+    )
+
+    # Researchers participate in the survey
+    researcher_1.participate_in_survey(survey_1)
+    researcher_2.participate_in_survey(survey_1)
+
+    # Track sentiment over time for this survey (simulating over 12 months)
+    tracker.track_sentiment_over_time(survey_1, time_period=12)
+
+    # Create another survey on "Artificial Intelligence and Ethics"
+    survey_2 = tracker.create_survey(
+        "AI and Ethics Survey",
+        ["Is AI a threat to employment?", "Should AI development be regulated?", "Can AI be trusted with decision-making in healthcare?"]
+    )
+
+    # Participants take the second survey
+    researcher_1.participate_in_survey(survey_2)
+    researcher_2.participate_in_survey(survey_2)
+
+    # Track sentiment over time for the second survey (simulating over 12 months)
+    tracker.track_sentiment_over_time(survey_2, time_period=12)
+
+    # Plot the sentiment trends over time
+    tracker.plot_sentiment_trends()
