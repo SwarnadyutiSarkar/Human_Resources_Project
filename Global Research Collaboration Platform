@@ -1,0 +1,141 @@
+import uuid
+import random
+
+class Researcher:
+    def __init__(self, name, country, interests):
+        """
+        Initialize the researcher with basic information.
+        
+        :param name: Name of the researcher
+        :param country: Country of the researcher
+        :param interests: List of research interests
+        """
+        self.id = uuid.uuid4()
+        self.name = name
+        self.country = country
+        self.interests = interests
+        self.projects = []
+        self.collaboration_requests = []
+    
+    def create_project(self, project_name, description):
+        """Create a new research project."""
+        project = ResearchProject(project_name, description, self)
+        self.projects.append(project)
+        return project
+    
+    def receive_collaboration_request(self, project, requester):
+        """Receive a collaboration request from a researcher."""
+        self.collaboration_requests.append((requester, project))
+
+    def view_collaboration_requests(self):
+        """View all pending collaboration requests."""
+        return self.collaboration_requests
+
+    def accept_collaboration_request(self, requester, project):
+        """Accept a collaboration request and add the requester to the project."""
+        project.add_collaborator(requester)
+        self.collaboration_requests = [req for req in self.collaboration_requests if req != (requester, project)]
+        print(f"{self.name} accepted collaboration request from {requester.name} for project {project.name}.")
+
+    def decline_collaboration_request(self, requester, project):
+        """Decline a collaboration request."""
+        self.collaboration_requests = [req for req in self.collaboration_requests if req != (requester, project)]
+        print(f"{self.name} declined collaboration request from {requester.name} for project {project.name}.")
+
+
+class ResearchProject:
+    def __init__(self, name, description, creator):
+        """
+        Initialize the research project.
+        
+        :param name: Name of the project
+        :param description: Description of the project
+        :param creator: The researcher who created the project
+        """
+        self.id = uuid.uuid4()
+        self.name = name
+        self.description = description
+        self.creator = creator
+        self.collaborators = [creator]
+
+    def add_collaborator(self, researcher):
+        """Add a collaborator to the project."""
+        if researcher not in self.collaborators:
+            self.collaborators.append(researcher)
+            print(f"{researcher.name} added to the project {self.name}.")
+        else:
+            print(f"{researcher.name} is already a collaborator in the project {self.name}.")
+
+    def list_collaborators(self):
+        """List all collaborators in the project."""
+        return [collaborator.name for collaborator in self.collaborators]
+
+
+class CollaborationPlatform:
+    def __init__(self):
+        """Initialize the collaboration platform."""
+        self.researchers = []
+        self.projects = []
+    
+    def register_researcher(self, name, country, interests):
+        """Register a new researcher on the platform."""
+        researcher = Researcher(name, country, interests)
+        self.researchers.append(researcher)
+        print(f"Researcher {name} from {country} registered successfully!")
+        return researcher
+    
+    def find_collaborators(self, researcher, keyword):
+        """Find collaborators based on shared interests."""
+        possible_collaborators = []
+        for other_researcher in self.researchers:
+            if other_researcher != researcher and any(interest in other_researcher.interests for interest in researcher.interests):
+                possible_collaborators.append(other_researcher)
+        return possible_collaborators
+    
+    def create_project(self, researcher, project_name, description):
+        """Create a research project."""
+        project = researcher.create_project(project_name, description)
+        self.projects.append(project)
+        return project
+    
+    def send_collaboration_request(self, requester, project, potential_collaborator):
+        """Send a collaboration request to a researcher."""
+        if potential_collaborator not in project.collaborators:
+            potential_collaborator.receive_collaboration_request(project, requester)
+            print(f"Collaboration request sent to {potential_collaborator.name} for project {project.name}.")
+        else:
+            print(f"{potential_collaborator.name} is already a collaborator in the project {project.name}.")
+
+
+# Example usage of the platform
+
+if __name__ == "__main__":
+    # Initialize the platform
+    platform = CollaborationPlatform()
+
+    # Register some researchers
+    researcher_1 = platform.register_researcher("Dr. Alice", "USA", ["AI", "Machine Learning", "Data Science"])
+    researcher_2 = platform.register_researcher("Dr. Bob", "UK", ["AI", "Robotics", "Machine Learning"])
+    researcher_3 = platform.register_researcher("Dr. Carol", "India", ["Quantum Computing", "AI", "Data Science"])
+
+    # Researcher 1 creates a project
+    project_1 = platform.create_project(researcher_1, "AI for Healthcare", "Researching AI applications in healthcare.")
+
+    # Researcher 2 looks for collaborators with common interests
+    collaborators = platform.find_collaborators(researcher_2, "Machine Learning")
+    print(f"Collaborators found for {researcher_2.name}: {[collab.name for collab in collaborators]}")
+
+    # Researcher 2 sends a collaboration request to researcher 1 for the project
+    platform.send_collaboration_request(researcher_2, project_1, researcher_1)
+
+    # Researcher 1 accepts the collaboration request
+    researcher_1.accept_collaboration_request(researcher_2, project_1)
+
+    # List the collaborators in the project
+    print(f"Collaborators in {project_1.name}: {project_1.list_collaborators()}")
+    
+    # Send a collaboration request to a researcher who is already in the project (shouldn't be added)
+    platform.send_collaboration_request(researcher_3, project_1, researcher_1)
+
+    # Researcher 3 creates their own project
+    project_2 = platform.create_project(researcher_3, "Quantum AI", "Exploring quantum computing and AI.")
