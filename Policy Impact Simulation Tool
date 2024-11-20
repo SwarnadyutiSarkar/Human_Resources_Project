@@ -1,0 +1,116 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+class PolicyImpactSimulation:
+    def __init__(self, initial_gdp, initial_employment_rate, initial_income_inequality, tax_rate, subsidy_rate):
+        """
+        Initialize the simulation parameters.
+        
+        :param initial_gdp: Initial GDP level
+        :param initial_employment_rate: Initial employment rate as a percentage (0-100)
+        :param initial_income_inequality: Initial Gini coefficient (0: perfect equality, 1: maximum inequality)
+        :param tax_rate: Tax rate as a percentage (0-100)
+        :param subsidy_rate: Subsidy rate as a percentage (0-100)
+        """
+        self.initial_gdp = initial_gdp
+        self.initial_employment_rate = initial_employment_rate
+        self.initial_income_inequality = initial_income_inequality
+        self.tax_rate = tax_rate
+        self.subsidy_rate = subsidy_rate
+        
+        self.gdp = initial_gdp
+        self.employment_rate = initial_employment_rate
+        self.income_inequality = initial_income_inequality
+
+    def simulate_policy_change(self, years=10):
+        """
+        Simulate the effects of policy changes over a specified number of years.
+        
+        :param years: The number of years to simulate
+        :return: A dictionary with the simulated values for GDP, employment rate, and income inequality
+        """
+        gdp_values = [self.gdp]
+        employment_values = [self.employment_rate]
+        inequality_values = [self.income_inequality]
+        
+        for year in range(1, years + 1):
+            # Apply tax rate impact (negative effect on GDP and employment, positive effect on inequality)
+            gdp_growth_rate = 0.02 - 0.01 * (self.tax_rate / 100)  # Lower GDP growth with higher taxes
+            employment_growth_rate = 0.015 - 0.005 * (self.tax_rate / 100)  # Lower employment growth with higher taxes
+            inequality_growth_rate = 0.01 * (self.income_inequality) - 0.005 * (self.subsidy_rate / 100)  # Increase inequality with higher inequality
+
+            # Apply subsidies (positive effect on GDP and employment, negative effect on inequality)
+            gdp_growth_rate += 0.01 * (self.subsidy_rate / 100)
+            employment_growth_rate += 0.005 * (self.subsidy_rate / 100)
+
+            # Update the values for each indicator
+            self.gdp += self.gdp * gdp_growth_rate
+            self.employment_rate += self.employment_rate * employment_growth_rate
+            self.income_inequality += inequality_growth_rate
+
+            # Store the values for each year
+            gdp_values.append(self.gdp)
+            employment_values.append(self.employment_rate)
+            inequality_values.append(self.income_inequality)
+
+        # Create a dictionary of results
+        result = {
+            'years': list(range(years + 1)),
+            'gdp_values': gdp_values,
+            'employment_values': employment_values,
+            'inequality_values': inequality_values
+        }
+        
+        return result
+
+    def plot_simulation(self, simulation_results):
+        """
+        Plot the results of the policy simulation over time.
+        
+        :param simulation_results: Dictionary containing the simulation results
+        """
+        plt.figure(figsize=(10, 6))
+
+        # Plot GDP
+        plt.subplot(3, 1, 1)
+        plt.plot(simulation_results['years'], simulation_results['gdp_values'], label="GDP", color='blue')
+        plt.xlabel('Years')
+        plt.ylabel('GDP')
+        plt.title('GDP Simulation over Time')
+        plt.grid(True)
+
+        # Plot Employment Rate
+        plt.subplot(3, 1, 2)
+        plt.plot(simulation_results['years'], simulation_results['employment_values'], label="Employment Rate", color='green')
+        plt.xlabel('Years')
+        plt.ylabel('Employment Rate (%)')
+        plt.title('Employment Rate Simulation over Time')
+        plt.grid(True)
+
+        # Plot Income Inequality (Gini coefficient)
+        plt.subplot(3, 1, 3)
+        plt.plot(simulation_results['years'], simulation_results['inequality_values'], label="Income Inequality (Gini)", color='red')
+        plt.xlabel('Years')
+        plt.ylabel('Gini Coefficient')
+        plt.title('Income Inequality Simulation over Time')
+        plt.grid(True)
+
+        plt.tight_layout()
+        plt.show()
+
+# Example usage of the PolicyImpactSimulation class
+if __name__ == "__main__":
+    # Initialize the simulation with example parameters
+    policy_sim = PolicyImpactSimulation(
+        initial_gdp=1000,  # Initial GDP value (in billions)
+        initial_employment_rate=95,  # Initial employment rate (in percentage)
+        initial_income_inequality=0.3,  # Initial Gini coefficient
+        tax_rate=25,  # Tax rate (percentage)
+        subsidy_rate=10  # Subsidy rate (percentage)
+    )
+
+    # Simulate the policy impact for 10 years
+    simulation_results = policy_sim.simulate_policy_change(years=10)
+
+    # Plot the results
+    policy_sim.plot_simulation(simulation_results)
