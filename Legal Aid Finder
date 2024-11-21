@@ -1,0 +1,136 @@
+import tkinter as tk
+from tkinter import messagebox
+import sqlite3
+
+# Create SQLite database and table if not exists
+def create_db():
+    conn = sqlite3.connect('legal_aid.db')
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS legal_resources
+                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                       resource_name TEXT,
+                       description TEXT,
+                       contact_info TEXT,
+                       location TEXT)''')
+    conn.commit()
+    conn.close()
+
+# Function to save legal resource to the database
+def save_resource(name, description, contact, location):
+    conn = sqlite3.connect('legal_aid.db')
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO legal_resources (resource_name, description, contact_info, location) VALUES (?, ?, ?, ?)",
+                   (name, description, contact, location))
+    conn.commit()
+    conn.close()
+
+# Function to display legal resources
+def display_resources():
+    conn = sqlite3.connect('legal_aid.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM legal_resources")
+    rows = cursor.fetchall()
+    conn.close()
+    
+    # Clear current resource display
+    for widget in resource_frame.winfo_children():
+        widget.destroy()
+
+    # Display resources
+    for row in rows:
+        resource_label = tk.Label(resource_frame, text=f"ID: {row[0]} - Name: {row[1]} - Location: {row[4]}")
+        resource_label.pack()
+
+# Function to handle resource submission
+def submit_resource():
+    name = entry_name.get()
+    description = text_description.get("1.0", "end-1c")
+    contact = entry_contact.get()
+    location = entry_location.get()
+
+    if not name or not description or not contact or not location:
+        messagebox.showwarning("Input Error", "All fields are required!")
+        return
+
+    save_resource(name, description, contact, location)
+    display_resources()
+    messagebox.showinfo("Success", "Legal resource submitted successfully!")
+
+# Function to search for legal resources based on location
+def search_resources():
+    location = entry_search_location.get()
+    
+    if not location:
+        messagebox.showwarning("Input Error", "Location is required!")
+        return
+
+    conn = sqlite3.connect('legal_aid.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM legal_resources WHERE location LIKE ?", ('%' + location + '%',))
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Clear current resource display
+    for widget in resource_frame.winfo_children():
+        widget.destroy()
+
+    # Display search results
+    if rows:
+        for row in rows:
+            resource_label = tk.Label(resource_frame, text=f"ID: {row[0]} - Name: {row[1]} - Location: {row[4]}")
+            resource_label.pack()
+    else:
+        messagebox.showinfo("No Results", "No resources found in the specified location.")
+
+# Create the GUI
+app = tk.Tk()
+app.title("Legal Aid Finder")
+
+# Resource submission section
+label_name = tk.Label(app, text="Resource Name:")
+label_name.pack()
+
+entry_name = tk.Entry(app, width=50)
+entry_name.pack()
+
+label_description = tk.Label(app, text="Description:")
+label_description.pack()
+
+text_description = tk.Text(app, width=50, height=10)
+text_description.pack()
+
+label_contact = tk.Label(app, text="Contact Info:")
+label_contact.pack()
+
+entry_contact = tk.Entry(app, width=50)
+entry_contact.pack()
+
+label_location = tk.Label(app, text="Location:")
+label_location.pack()
+
+entry_location = tk.Entry(app, width=50)
+entry_location.pack()
+
+submit_button = tk.Button(app, text="Submit Legal Resource", command=submit_resource)
+submit_button.pack()
+
+# Search resources section
+label_search_location = tk.Label(app, text="Search Resources by Location:")
+label_search_location.pack()
+
+entry_search_location = tk.Entry(app, width=50)
+entry_search_location.pack()
+
+search_button = tk.Button(app, text="Search Resources", command=search_resources)
+search_button.pack()
+
+# Legal resources display section
+resource_frame = tk.Frame(app)
+resource_frame.pack()
+
+# Initialize database and display resources
+create_db()
+display_resources()
+
+# Run the application
+app.mainloop()
