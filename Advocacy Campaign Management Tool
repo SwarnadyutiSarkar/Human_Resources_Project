@@ -1,0 +1,143 @@
+import tkinter as tk
+from tkinter import messagebox
+import sqlite3
+from datetime import datetime
+
+# Create SQLite database and table if not exists
+def create_db():
+    conn = sqlite3.connect('campaigns.db')
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS campaigns
+                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                       title TEXT,
+                       description TEXT,
+                       start_date TEXT,
+                       end_date TEXT,
+                       status TEXT)''')
+    conn.commit()
+    conn.close()
+
+# Function to save campaign to the database
+def save_campaign(title, description, start_date, end_date, status):
+    conn = sqlite3.connect('campaigns.db')
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO campaigns (title, description, start_date, end_date, status) VALUES (?, ?, ?, ?, ?)",
+                   (title, description, start_date, end_date, status))
+    conn.commit()
+    conn.close()
+
+# Function to update campaign status
+def update_status(campaign_id, status):
+    conn = sqlite3.connect('campaigns.db')
+    cursor = conn.cursor()
+    cursor.execute("UPDATE campaigns SET status = ? WHERE id = ?", (status, campaign_id))
+    conn.commit()
+    conn.close()
+
+# Function to display campaign list
+def display_campaigns():
+    conn = sqlite3.connect('campaigns.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM campaigns")
+    rows = cursor.fetchall()
+    conn.close()
+    
+    # Clear the current campaign list
+    for widget in campaign_frame.winfo_children():
+        widget.destroy()
+
+    # Display campaigns
+    for row in rows:
+        campaign_label = tk.Label(campaign_frame, text=f"ID: {row[0]} - Title: {row[1]} - Status: {row[5]}")
+        campaign_label.pack()
+
+# Function to handle campaign submission
+def submit_campaign():
+    title = entry_title.get()
+    description = text_description.get("1.0", "end-1c")
+    start_date = entry_start_date.get()
+    end_date = entry_end_date.get()
+
+    if not title or not description or not start_date or not end_date:
+        messagebox.showwarning("Input Error", "All fields are required!")
+        return
+
+    status = "Planning"
+    save_campaign(title, description, start_date, end_date, status)
+    display_campaigns()
+    messagebox.showinfo("Success", "Campaign submitted successfully!")
+
+# Function to handle campaign status update
+def change_status():
+    campaign_id = entry_campaign_id.get()
+    status = combo_status.get()
+
+    if not campaign_id or not status:
+        messagebox.showwarning("Input Error", "Campaign ID and status are required!")
+        return
+
+    update_status(campaign_id, status)
+    display_campaigns()
+    messagebox.showinfo("Success", "Campaign status updated successfully!")
+
+# Create the GUI
+app = tk.Tk()
+app.title("Advocacy Campaign Management Tool")
+
+# Campaign submission section
+label_title = tk.Label(app, text="Campaign Title:")
+label_title.pack()
+
+entry_title = tk.Entry(app, width=50)
+entry_title.pack()
+
+label_description = tk.Label(app, text="Campaign Description:")
+label_description.pack()
+
+text_description = tk.Text(app, width=50, height=10)
+text_description.pack()
+
+label_start_date = tk.Label(app, text="Start Date (YYYY-MM-DD):")
+label_start_date.pack()
+
+entry_start_date = tk.Entry(app, width=50)
+entry_start_date.pack()
+
+label_end_date = tk.Label(app, text="End Date (YYYY-MM-DD):")
+label_end_date.pack()
+
+entry_end_date = tk.Entry(app, width=50)
+entry_end_date.pack()
+
+submit_button = tk.Button(app, text="Submit Campaign", command=submit_campaign)
+submit_button.pack()
+
+# Campaign status update section
+label_campaign_id = tk.Label(app, text="Campaign ID to update status:")
+label_campaign_id.pack()
+
+entry_campaign_id = tk.Entry(app, width=50)
+entry_campaign_id.pack()
+
+label_status = tk.Label(app, text="Select Status:")
+label_status.pack()
+
+combo_status = tk.StringVar(app)
+combo_status.set("Planning")
+status_options = ["Planning", "Active", "Completed", "Cancelled"]
+status_dropdown = tk.OptionMenu(app, combo_status, *status_options)
+status_dropdown.pack()
+
+update_status_button = tk.Button(app, text="Update Campaign Status", command=change_status)
+update_status_button.pack()
+
+# Campaign list display section
+campaign_frame = tk.Frame(app)
+campaign_frame.pack()
+
+# Initialize database and display campaigns
+create_db()
+display_campaigns()
+
+# Run the application
+app.mainloop()
