@@ -1,0 +1,121 @@
+import tkinter as tk
+from tkinter import messagebox
+import json
+from datetime import datetime
+
+class ProgramEvaluationToolkit:
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Program Evaluation Toolkit")
+        self.master.geometry("400x400")
+        
+        # Create UI Elements
+        self.program_name_label = tk.Label(master, text="Program Name:")
+        self.program_name_label.grid(row=0, column=0, padx=10, pady=5, sticky='w')
+        
+        self.program_name_entry = tk.Entry(master, width=30)
+        self.program_name_entry.grid(row=0, column=1, padx=10, pady=5)
+        
+        self.evaluator_name_label = tk.Label(master, text="Evaluator Name:")
+        self.evaluator_name_label.grid(row=1, column=0, padx=10, pady=5, sticky='w')
+        
+        self.evaluator_name_entry = tk.Entry(master, width=30)
+        self.evaluator_name_entry.grid(row=1, column=1, padx=10, pady=5)
+        
+        self.kpi_label = tk.Label(master, text="Enter KPIs (1-10 scale):")
+        self.kpi_label.grid(row=2, column=0, padx=10, pady=5, sticky='w')
+        
+        self.kpi_score_entry = tk.Entry(master, width=10)
+        self.kpi_score_entry.grid(row=2, column=1, padx=10, pady=5)
+        
+        self.kpi_description_label = tk.Label(master, text="(Rate the program effectiveness on KPIs)")
+        self.kpi_description_label.grid(row=3, column=0, columnspan=2, padx=10, pady=5)
+        
+        self.submit_button = tk.Button(master, text="Submit Evaluation", command=self.submit_evaluation)
+        self.submit_button.grid(row=4, column=0, columnspan=2, pady=20)
+        
+        self.view_reports_button = tk.Button(master, text="View Reports", command=self.view_reports)
+        self.view_reports_button.grid(row=5, column=0, columnspan=2, pady=10)
+        
+        # Initialize data storage
+        self.data_file = "program_evaluations.json"
+        self.data = self.load_data()
+        
+    def submit_evaluation(self):
+        # Collect data from inputs
+        program_name = self.program_name_entry.get()
+        evaluator_name = self.evaluator_name_entry.get()
+        kpi_score = self.kpi_score_entry.get()
+        
+        # Validation
+        if not program_name or not evaluator_name or not kpi_score:
+            messagebox.showerror("Input Error", "Please fill out all fields.")
+            return
+        
+        if not kpi_score.isdigit() or not (1 <= int(kpi_score) <= 10):
+            messagebox.showerror("Invalid KPI", "Please enter a KPI score between 1 and 10.")
+            return
+        
+        # Create an entry for evaluation
+        evaluation = {
+            'program_name': program_name,
+            'evaluator_name': evaluator_name,
+            'kpi_score': int(kpi_score),
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        # Append the evaluation to the data
+        self.data.append(evaluation)
+        
+        # Save data to the JSON file
+        self.save_data()
+        
+        # Clear input fields
+        self.program_name_entry.delete(0, tk.END)
+        self.evaluator_name_entry.delete(0, tk.END)
+        self.kpi_score_entry.delete(0, tk.END)
+        
+        messagebox.showinfo("Success", "Evaluation submitted successfully!")
+    
+    def load_data(self):
+        # Load evaluation data from the file if it exists
+        if os.path.exists(self.data_file):
+            with open(self.data_file, 'r') as f:
+                return json.load(f)
+        return []
+    
+    def save_data(self):
+        # Save the evaluation data to a JSON file
+        with open(self.data_file, 'w') as f:
+            json.dump(self.data, f, indent=4)
+    
+    def view_reports(self):
+        # Generate a simple report based on the collected data
+        if not self.data:
+            messagebox.showwarning("No Data", "No evaluations have been submitted.")
+            return
+        
+        # Summarize data (average KPI score)
+        total_kpi = sum(entry['kpi_score'] for entry in self.data)
+        average_kpi = total_kpi / len(self.data)
+        
+        # Create report string
+        report = f"Program Evaluation Report\n\n"
+        report += f"Total Evaluations: {len(self.data)}\n"
+        report += f"Average KPI Score: {average_kpi:.2f}\n\n"
+        report += "Detailed Evaluations:\n"
+        
+        for entry in self.data:
+            report += f"Program: {entry['program_name']} | Evaluator: {entry['evaluator_name']} | KPI: {entry['kpi_score']} | Date: {entry['timestamp']}\n"
+        
+        # Show the report in a popup
+        messagebox.showinfo("Evaluation Report", report)
+
+# Create the main window for the application
+root = tk.Tk()
+
+# Initialize the program evaluation toolkit app
+app = ProgramEvaluationToolkit(root)
+
+# Run the application
+root.mainloop()
