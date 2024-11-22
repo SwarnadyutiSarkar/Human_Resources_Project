@@ -1,0 +1,97 @@
+import kivy
+from kivy.app import App
+from kivy.uix.button import Button
+from kivy.uix.textinput import TextInput
+from kivy.uix.label import Label
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.popup import Popup
+from kivy.uix.datepicker import DatePicker
+import json
+import os
+import time
+from datetime import datetime
+
+kivy.require('2.0.0')  # Ensure you're using a version of Kivy that supports the features
+
+# Create a class for the Fieldwork App
+class FieldworkApp(App):
+    def build(self):
+        self.data = []  # Store collected data here
+        self.data_file = "fieldwork_data.json"
+        
+        # Load existing data if available
+        if os.path.exists(self.data_file):
+            with open(self.data_file, 'r') as f:
+                self.data = json.load(f)
+        
+        # Set up the layout of the app
+        layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        
+        # Label at the top of the app
+        self.label = Label(text="Fieldwork Data Collection", font_size=24)
+        layout.add_widget(self.label)
+        
+        # Scrollable area for data entry
+        self.scrollview = ScrollView()
+        self.input_area = GridLayout(cols=2, spacing=10, size_hint_y=None)
+        self.input_area.bind(minimum_height=self.input_area.setter('height'))
+        self.scrollview.add_widget(self.input_area)
+        
+        # Add input fields
+        self.location_input = TextInput(hint_text='Location', size_hint_y=None, height=40)
+        self.notes_input = TextInput(hint_text='Notes', size_hint_y=None, height=100, multiline=True)
+        self.timestamp_label = Label(text="Timestamp: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        
+        self.input_area.add_widget(self.location_input)
+        self.input_area.add_widget(self.notes_input)
+        self.input_area.add_widget(self.timestamp_label)
+        
+        # Add save button
+        self.save_button = Button(text="Save Data", size_hint_y=None, height=50)
+        self.save_button.bind(on_press=self.save_data)
+        
+        layout.add_widget(self.scrollview)
+        layout.add_widget(self.save_button)
+        
+        return layout
+    
+    def save_data(self, instance):
+        # Collect data from inputs
+        location = self.location_input.text
+        notes = self.notes_input.text
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Save the data to a list
+        if location and notes:
+            fieldwork_entry = {
+                'location': location,
+                'notes': notes,
+                'timestamp': timestamp
+            }
+            self.data.append(fieldwork_entry)
+            
+            # Save data to a file
+            with open(self.data_file, 'w') as f:
+                json.dump(self.data, f, indent=4)
+            
+            # Show confirmation popup
+            self.show_popup("Data Saved", "Your data has been successfully saved.")
+            
+            # Clear inputs for new data entry
+            self.location_input.text = ''
+            self.notes_input.text = ''
+            self.timestamp_label.text = "Timestamp: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            self.show_popup("Missing Information", "Please fill in both location and notes.")
+    
+    def show_popup(self, title, message):
+        # Show a simple popup
+        popup = Popup(title=title,
+                      content=Label(text=message),
+                      size_hint=(0.7, 0.3))
+        popup.open()
+
+if __name__ == "__main__":
+    FieldworkApp().run()
