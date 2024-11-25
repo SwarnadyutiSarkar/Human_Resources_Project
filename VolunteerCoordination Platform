@@ -1,0 +1,184 @@
+# Importing necessary libraries
+from flask import Flask, render_template, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+
+# Initializing Flask app and database
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///volunteers.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Defining Volunteer and NGO Project models
+class Volunteer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    phone = db.Column(db.String(15), nullable=False)
+    projects = db.relationship('Project', secondary='volunteer_project')
+
+class Project(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    location = db.Column(db.String(100), nullable=False)
+    volunteers = db.relationship('Volunteer', secondary='volunteer_project')
+
+class VolunteerProject(db.Model):
+    __tablename__ = 'volunteer_project'
+    volunteer_id = db.Column(db.Integer, db.ForeignKey('volunteer.id'), primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), primary_key=True)
+
+# Home route to display all available projects
+@app.route('/')
+def home():
+    projects = Project.query.all()
+    return render_template('index.html', projects=projects)
+
+# Volunteer registration route
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        phone = request.form['phone']
+        new_volunteer = Volunteer(name=name, email=email, phone=phone)
+        db.session.add(new_volunteer)
+        db.session.commit()
+        return redirect(url_for('home'))
+    return render_template('register.html')
+
+# Project details route for volunteers to sign up
+@app.route('/project/<int:project_id>', methods=['GET', 'POST'])
+def project_detail(project_id):
+    project = Project.query.get_or_404(project_id)
+    if request.method == 'POST':
+        volunteer_id = request.form['volunteer_id']
+        volunteer = Volunteer.query.get(volunteer_id)
+        project.volunteers.append(volunteer)
+        db.session.commit()
+        return redirect(url_for('home'))
+    volunteers = Volunteer.query.all()
+    return render_template('project_detail.html', project=project, volunteers=volunteers)
+
+# Route to create a new project
+@app.route('/create_project', methods=['GET', 'POST'])
+def create_project():
+    if request.method == 'POST':
+        title = request.form['title']
+        description = request.form['description']
+        location = request.form['location']
+        new_project = Project(title=title, description=description, location=location)
+        db.session.add(new_project)
+        db.session.commit()
+        return redirect(url_for('home'))
+    return render_template('create_project.html')
+
+# Running the app
+if __name__ == "__main__":
+    db.create_all()  # Create database tables if they don't exist
+    app.run(debug=True)
+
+---------------
+INDEX.HTML
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volunteer Coordination Platform</title>
+</head>
+<body>
+    <h1>Volunteer Coordination Platform</h1>
+    <h2>Available Projects</h2>
+    <ul>
+        {% for project in projects %}
+        <li>
+            <h3>{{ project.title }}</h3>
+            <p>{{ project.description }}</p>
+            <p>Location: {{ project.location }}</p>
+            <a href="{{ url_for('project_detail', project_id=project.id) }}">Join Project</a>
+        </li>
+        {% endfor %}
+    </ul>
+    <a href="{{ url_for('register') }}">Register as Volunteer</a><br>
+    <a href="{{ url_for('create_project') }}">Create New Project</a>
+</body>
+</html>
+----------------------
+REGISTER.HTML
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+</head>
+<body>
+    <h1>Register as Volunteer</h1>
+    <form method="POST">
+        <label>Name:</label><br>
+        <input type="text" name="name" required><br><br>
+        <label>Email:</label><br>
+        <input type="email" name="email" required><br><br>
+        <label>Phone:</label><br>
+        <input type="text" name="phone" required><br><br>
+        <button type="submit">Register</button>
+    </form>
+</body>
+</html>
+--------------------
+PROJECT DEATIL
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ project.title }}</title>
+</head>
+<body>
+    <h1>{{ project.title }}</h1>
+    <p>{{ project.description }}</p>
+    <p>Location: {{ project.location }}</p>
+    
+    <h3>Volunteers</h3>
+    <form method="POST">
+        <label for="volunteer_id">Select Volunteer:</label><br>
+        <select name="volunteer_id" id="volunteer_id">
+            {% for volunteer in volunteers %}
+            <option value="{{ volunteer.id }}">{{ volunteer.name }}</option>
+            {% endfor %}
+        </select><br><br>
+        <button type="submit">Join Project</button>
+    </form>
+
+    <a href="{{ url_for('home') }}">Back to Projects</a>
+</body>
+</html>
+---------------------------
+CREATE PROJECT
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Project</title>
+</head>
+<body>
+    <h1>Create New Project</h1>
+    <form method="POST">
+        <label>Project Title:</label><br>
+        <input type="text" name="title" required><br><br>
+        <label>Description:</label><br>
+        <textarea name="description" required></textarea><br><br>
+        <label>Location:</label><br>
+        <input type="text" name="location" required><br><br>
+        <button type="submit">Create Project</button>
+    </form>
+
+    <a href="{{ url_for('home') }}">Back to Projects</a>
+</body>
+</html>

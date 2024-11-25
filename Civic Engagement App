@@ -1,0 +1,107 @@
+# Importing necessary libraries
+from flask import Flask, render_template, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+
+# Initializing Flask app and database
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///digital_storytelling.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Defining Story model
+class Story(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    author_name = db.Column(db.String(100), nullable=False)
+    country = db.Column(db.String(100), nullable=False)
+    date_submitted = db.Column(db.String(20), nullable=False)
+
+# Home route to display all submitted stories
+@app.route('/')
+def home():
+    stories = Story.query.all()
+    return render_template('index.html', stories=stories)
+
+# Route to submit a new story
+@app.route('/submit', methods=['GET', 'POST'])
+def submit_story():
+    if request.method == 'POST':
+        title = request.form['title']
+        content = request.form['content']
+        author_name = request.form['author_name']
+        country = request.form['country']
+        date_submitted = request.form['date_submitted']
+        
+        new_story = Story(
+            title=title, content=content, author_name=author_name,
+            country=country, date_submitted=date_submitted
+        )
+        db.session.add(new_story)
+        db.session.commit()
+        return redirect(url_for('home'))
+    
+    return render_template('submit_story.html')
+
+# Running the app
+if __name__ == "__main__":
+    db.create_all()  # Create database tables if they don't exist
+    app.run(debug=True)
+------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Storytelling Platform</title>
+</head>
+<body>
+    <h1>Digital Storytelling Platform</h1>
+    <h2>Personal Stories from Individuals Impacted by UN Initiatives</h2>
+    
+    <ul>
+        {% for story in stories %}
+        <li>
+            <h3>{{ story.title }}</h3>
+            <p><strong>{{ story.author_name }}</strong> ({{ story.country }}) - {{ story.date_submitted }}</p>
+            <p>{{ story.content }}</p>
+        </li>
+        {% endfor %}
+    </ul>
+    
+    <a href="{{ url_for('submit_story') }}">Submit Your Story</a>
+</body>
+</html>
+------------------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Your Story</title>
+</head>
+<body>
+    <h1>Submit Your Story</h1>
+    
+    <form method="POST">
+        <label for="title">Story Title:</label><br>
+        <input type="text" id="title" name="title" required><br><br>
+        
+        <label for="content">Story Content:</label><br>
+        <textarea id="content" name="content" required></textarea><br><br>
+        
+        <label for="author_name">Your Name:</label><br>
+        <input type="text" id="author_name" name="author_name" required><br><br>
+        
+        <label for="country">Your Country:</label><br>
+        <input type="text" id="country" name="country" required><br><br>
+        
+        <label for="date_submitted">Date Submitted:</label><br>
+        <input type="date" id="date_submitted" name="date_submitted" required><br><br>
+        
+        <button type="submit">Submit Story</button>
+    </form>
+
+    <a href="{{ url_for('home') }}">Back to Stories</a>
+</body>
+</html>

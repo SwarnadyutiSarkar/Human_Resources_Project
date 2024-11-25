@@ -1,0 +1,80 @@
+# Importing necessary libraries
+from flask import Flask, render_template, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+
+# Initializing Flask app and database
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///volunteers.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Defining Volunteer and NGO Project models
+class Volunteer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    phone = db.Column(db.String(15), nullable=False)
+    projects = db.relationship('Project', secondary='volunteer_project')
+
+class Project(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    location = db.Column(db.String(100), nullable=False)
+    volunteers = db.relationship('Volunteer', secondary='volunteer_project')
+
+class VolunteerProject(db.Model):
+    __tablename__ = 'volunteer_project'
+    volunteer_id = db.Column(db.Integer, db.ForeignKey('volunteer.id'), primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), primary_key=True)
+
+# Home route to display all available projects
+@app.route('/')
+def home():
+    projects = Project.query.all()
+    return render_template('index.html', projects=projects)
+
+# Volunteer registration route
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        phone = request.form['phone']
+        new_volunteer = Volunteer(name=name, email=email, phone=phone)
+        db.session.add(new_volunteer)
+        db.session.commit()
+        return redirect(url_for('home'))
+    return render_template('register.html')
+
+# Project details route for volunteers to sign up
+@app.route('/project/<int:project_id>', methods=['GET', 'POST'])
+def project_detail(project_id):
+    project = Project.query.get_or_404(project_id)
+    if request.method == 'POST':
+        volunteer_id = request.form['volunteer_id']
+        volunteer = Volunteer.query.get(volunteer_id)
+        project.volunteers.append(volunteer)
+        db.session.commit()
+        return redirect(url_for('home'))
+    volunteers = Volunteer.query.all()
+    return render_template('project_detail.html', project=project, volunteers=volunteers)
+
+# Route to create a new project
+@app.route('/create_project', methods=['GET', 'POST'])
+def create_project():
+    if request.method == 'POST':
+        title = request.form['title']
+        description = request.form['description']
+        location = request.form['location']
+        new_project = Project(title=title, description=description, location=location)
+        db.session.add(new_project)
+        db.session.commit()
+        return redirect(url_for('home'))
+    return render_template('create_project.html')
+
+# Running the app
+if __name__ == "__main__":
+    db.create_all()  # Create database tables if they don't exist
+    app.run(debug=True)
+
