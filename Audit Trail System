@@ -1,0 +1,146 @@
+from flask import Flask, render_template, request, redirect, url_for, flash
+import sqlite3
+from datetime import datetime
+
+# Flask app setup
+app = Flask(__name__)
+app.secret_key = 'your_secret_key_here'  # Secret key for sessions and flash messages
+
+DATABASE = 'employee_audit.db'
+
+# Initialize Database
+def init_db():
+    """Initialize the database and create necessary tables"""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        
+        # Create Employee table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS employees (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                department TEXT NOT NULL,
+                salary REAL NOT NULL
+            )
+        ''')
+
+        # Create Audit Trail table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS audit_trail (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                employee_id INTEGER,
+                changed_by TEXT,
+                change_date TEXT,
+                field_name TEXT,
+                old_value TEXT,
+                new_value TEXT,
+                FOREIGN KEY (employee_id) REFERENCES employees(id)
+            )
+        ''')
+
+        conn.commit()
+
+# Function to track changes in the audit trail
+def log_change(employee_id, changed_by, field_name, old_value, new_value):
+    """Log changes to the audit trail table"""
+    change_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO audit_trail (employee_id, changed_by, change_date, field_name, old_value, new_value)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (employee_id, changed_by, change_date, field_name, old_value, new_value))
+        conn.commit()
+
+# Routes
+
+@app.route('/')
+def index():
+    """Display the list of employees"""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM employees')
+        employees = cursor.fetchall()
+    return render_template('index.html', employees=employees)
+
+@app.route('/employee/<int:id>')
+def employee(id):
+    """Display a single employee's details and the audit trail"""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM employees WHERE id = ?', (id,))
+        employee = cursor.fetchone()
+
+        cursor.execute('SELECT * FROM audit_trail WHERE employee_id = ? ORDER BY change_date DESC', (id,))
+        audit_logs = cursor.fetchall()
+    return render_template('employee.html', employee=employee, audit_logs=audit_logs)
+
+@app.route('/edit_employee/<int:id>', methods=['GET', 'POST'])
+def edit_employee(id):
+    """Edit employee details and log the changes"""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM employees WHERE id = ?', (id,))
+        employee = cursor.fetchone()
+
+    if request.method == 'POST':
+        name = request.form['name']
+        department = request.form['department']
+        salary = float(request.form['salary'])
+
+        changed_by = 'admin'  # In a real app, this would be the logged-in user
+
+        # Track changes and log them
+        if name != employee[1]:
+            log_change(id, changed_by, 'name', employee[1], name)
+        if department != employee[2]:
+            log_change(id, changed_by, 'department', employee[2], department)
+        if salary != employee[3]:
+            log_change(id, changed_by, 'salary', str(employee[3]), str(salary))
+
+        # Update employee record
+        cursor.execute('''
+            UPDATE employees SET name = ?, department = ?, salary = ? WHERE id = ?
+        ''', (name, department, salary, id))
+        conn.commit()
+
+        flash('Employee details updated successfully!', 'success')
+        return redirect(url_for('employee', id=id))
+
+    return render_template('edit_employee.html', employee=employee)
+
+@app.route('/delete_employee/<int:id>', methods=['POST'])
+def delete_employee(id):
+    """Delete employee record and log the deletion"""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+
+        # Get current employee details for auditing
+        cursor.execute('SELECT * FROM employees WHERE id = ?', (id,))
+        employee = cursor.fetchone()
+
+        # Log the deletion action
+        log_change(id, 'admin', 'deletion', str(employee), 'DELETED')
+
+        # Delete employee record
+        cursor.execute('DELETE FROM employees WHERE id = ?', (id,))
+        conn.commit()
+
+        flash('Employee record deleted successfully!', 'success')
+    return redirect(url_for('index'))
+
+@app.route('/audit_trail')
+def audit_trail():
+    """Display the entire audit trail"""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM audit_trail ORDER BY change_date DESC')
+        logs = cursor.fetchall()
+    return render_template('audit_trail.html', logs=logs)
+
+# Initialize the database
+init_db()
+
+# Run the Flask application
+if __name__ == '__main__':
+    app.run(debug=True)
