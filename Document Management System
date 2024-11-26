@@ -1,0 +1,152 @@
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash
+from werkzeug.utils import secure_filename
+import os
+import sqlite3
+from datetime import datetime
+from cryptography.fernet import Fernet
+
+# Flask App Setup
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads/'
+app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'docx', 'txt', 'xlsx'}
+app.secret_key = 'your_secret_key_here'  # Used for session management and flash messages
+
+# Ensure the upload folder exists
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Database Setup
+DATABASE = 'hr_documents.db'
+
+def init_db():
+    """Initialize the database and create tables"""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS documents (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                filename TEXT NOT NULL,
+                upload_date TEXT NOT NULL,
+                version INTEGER DEFAULT 1,
+                encrypted BOOLEAN DEFAULT 0
+            )
+        ''')
+        conn.commit()
+
+# Encryption Setup (for secure document storage)
+def generate_key():
+    """Generate a secret key for encryption (run this once and store the key securely)"""
+    return Fernet.generate_key()
+
+# Use a fixed key for encryption/decryption (in a real app, store this key securely)
+SECRET_KEY = b'your_secret_key_here'  # Replace with your actual key
+cipher = Fernet(SECRET_KEY)
+
+def allowed_file(filename):
+    """Check if the file extension is allowed"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+def encrypt_file(file_path):
+    """Encrypt a file before storing it"""
+    with open(file_path, 'rb') as file:
+        file_data = file.read()
+    encrypted_data = cipher.encrypt(file_data)
+    encrypted_file_path = file_path + '.enc'
+    with open(encrypted_file_path, 'wb') as encrypted_file:
+        encrypted_file.write(encrypted_data)
+    return encrypted_file_path
+
+def decrypt_file(file_path):
+    """Decrypt a file when downloading"""
+    with open(file_path, 'rb') as encrypted_file:
+        encrypted_data = encrypted_file.read()
+    decrypted_data = cipher.decrypt(encrypted_data)
+    decrypted_file_path = file_path.replace('.enc', '')
+    with open(decrypted_file_path, 'wb') as decrypted_file:
+        decrypted_file.write(decrypted_data)
+    return decrypted_file_path
+
+# Routes
+
+@app.route('/')
+def index():
+    """Display the list of uploaded documents"""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM documents ORDER BY upload_date DESC')
+        documents = cursor.fetchall()
+    return render_template('index.html', documents=documents)
+
+@app.route('/upload', methods=['GET', 'POST'])
+def upload_document():
+    """Handle document upload"""
+    if request.method == 'POST':
+        file = request.files['file']
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+
+            # Encrypt the file
+            encrypted_file_path = encrypt_file(file_path)
+            
+            # Save document metadata to database
+            upload_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            with sqlite3.connect(DATABASE) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    INSERT INTO documents (name, filename, upload_date, version, encrypted)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (filename, encrypted_file_path, upload_date, 1, 1))
+                conn.commit()
+
+            flash('Document uploaded and encrypted successfully!', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid file type. Only PDF, DOCX, TXT, and XLSX are allowed.', 'danger')
+
+    return render_template('upload.html')
+
+@app.route('/download/<int:doc_id>')
+def download_document(doc_id):
+    """Allow users to download a document (decrypted)"""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM documents WHERE id = ?', (doc_id,))
+        document = cursor.fetchone()
+        
+        if document and document[5] == 1:  # Check if the document is encrypted
+            encrypted_file_path = document[2]
+            decrypted_file_path = decrypt_file(encrypted_file_path)
+
+            # Send the decrypted file
+            return send_from_directory(directory=os.path.dirname(decrypted_file_path), filename=os.path.basename(decrypted_file_path), as_attachment=True)
+
+    flash('Document not found or unable to decrypt.', 'danger')
+    return redirect(url_for('index'))
+
+@app.route('/delete/<int:doc_id>', methods=['POST'])
+def delete_document(doc_id):
+    """Delete a document and its metadata"""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT filename FROM documents WHERE id = ?', (doc_id,))
+        document = cursor.fetchone()
+        
+        if document:
+            encrypted_file_path = document[0]
+            if os.path.exists(encrypted_file_path):
+                os.remove(encrypted_file_path)
+            cursor.execute('DELETE FROM documents WHERE id = ?', (doc_id,))
+            conn.commit()
+
+            flash('Document deleted successfully!', 'success')
+        else:
+            flash('Document not found.', 'danger')
+
+    return redirect(url_for('index'))
+
+# Start the app
+if __name__ == '__main__':
+    init_db()  # Initialize the database
+    app.run(debug=True)
