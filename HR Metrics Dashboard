@@ -1,0 +1,127 @@
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+import plotly.graph_objs as go
+import pandas as pd
+import numpy as np
+
+# Sample HR Data (you can replace this with your actual HR dataset)
+np.random.seed(0)
+n = 1000
+departments = ['Sales', 'Marketing', 'HR', 'Engineering', 'Finance']
+genders = ['Male', 'Female']
+performance_ratings = ['Low', 'Medium', 'High']
+status = ['Active', 'Resigned', 'On Leave', 'Terminated']
+
+data = {
+    'Employee_ID': range(1, n+1),
+    'Department': np.random.choice(departments, n),
+    'Gender': np.random.choice(genders, n),
+    'Performance_Rating': np.random.choice(performance_ratings, n),
+    'Status': np.random.choice(status, n),
+    'Tenure_Years': np.random.uniform(1, 15, n),
+    'Salary': np.random.uniform(50000, 120000, n)
+}
+
+df = pd.DataFrame(data)
+
+# Calculate key HR metrics
+total_employees = len(df)
+active_employees = len(df[df['Status'] == 'Active'])
+resigned_employees = len(df[df['Status'] == 'Resigned'])
+avg_tenure = df['Tenure_Years'].mean()
+avg_salary = df['Salary'].mean()
+
+# Gender Distribution
+gender_dist = df['Gender'].value_counts()
+
+# Department Distribution
+department_dist = df['Department'].value_counts()
+
+# Performance Rating Distribution
+performance_dist = df['Performance_Rating'].value_counts()
+
+# Employee Turnover Rate
+turnover_rate = resigned_employees / total_employees * 100
+
+# Dashboard Setup
+app = dash.Dash(__name__)
+
+app.layout = html.Div([
+    html.H1('HR Metrics Dashboard', style={'textAlign': 'center'}),
+    
+    # Summary Metrics
+    html.Div([
+        html.Div([
+            html.H3(f'Total Employees: {total_employees}'),
+            html.H3(f'Active Employees: {active_employees}'),
+            html.H3(f'Resigned Employees: {resigned_employees}'),
+        ], style={'width': '30%', 'display': 'inline-block', 'padding': '10px', 'border': '1px solid #ccc'}),
+        
+        html.Div([
+            html.H3(f'Avg. Tenure: {avg_tenure:.2f} years'),
+            html.H3(f'Avg. Salary: ${avg_salary:,.2f}'),
+            html.H3(f'Employee Turnover Rate: {turnover_rate:.2f}%'),
+        ], style={'width': '30%', 'display': 'inline-block', 'padding': '10px', 'border': '1px solid #ccc'})
+    ], style={'margin': '20px'}),
+    
+    # Gender Distribution Pie Chart
+    html.Div([
+        html.H3('Gender Distribution', style={'textAlign': 'center'}),
+        dcc.Graph(
+            id='gender-distribution',
+            figure={
+                'data': [
+                    go.Pie(labels=gender_dist.index, values=gender_dist.values, hole=0.3)
+                ],
+                'layout': go.Layout(title='Gender Distribution')
+            }
+        ),
+    ], style={'width': '48%', 'display': 'inline-block', 'padding': '10px'}),
+    
+    # Department Distribution Bar Chart
+    html.Div([
+        html.H3('Department Distribution', style={'textAlign': 'center'}),
+        dcc.Graph(
+            id='department-distribution',
+            figure={
+                'data': [
+                    go.Bar(x=department_dist.index, y=department_dist.values)
+                ],
+                'layout': go.Layout(title='Department Distribution')
+            }
+        ),
+    ], style={'width': '48%', 'display': 'inline-block', 'padding': '10px'}),
+    
+    # Performance Rating Distribution Bar Chart
+    html.Div([
+        html.H3('Performance Rating Distribution', style={'textAlign': 'center'}),
+        dcc.Graph(
+            id='performance-distribution',
+            figure={
+                'data': [
+                    go.Bar(x=performance_dist.index, y=performance_dist.values)
+                ],
+                'layout': go.Layout(title='Performance Rating Distribution')
+            }
+        ),
+    ], style={'width': '48%', 'display': 'inline-block', 'padding': '10px'}),
+    
+    # Employee Tenure vs. Salary Scatter Plot
+    html.Div([
+        html.H3('Employee Tenure vs. Salary', style={'textAlign': 'center'}),
+        dcc.Graph(
+            id='tenure-vs-salary',
+            figure={
+                'data': [
+                    go.Scatter(x=df['Tenure_Years'], y=df['Salary'], mode='markers', marker=dict(color='blue', opacity=0.6))
+                ],
+                'layout': go.Layout(title='Employee Tenure vs. Salary', xaxis=dict(title='Tenure (Years)'), yaxis=dict(title='Salary ($)'))
+            }
+        ),
+    ], style={'width': '48%', 'display': 'inline-block', 'padding': '10px'}),
+])
+
+# Run the app
+if __name__ == '__main__':
+    app.run_server(debug=True)
