@@ -1,0 +1,71 @@
+# Crisis Management Communication Tool
+class CrisisManagementTool:
+    def __init__(self):
+        self.crisis_messages = []  # List to store crisis messages
+        self.stakeholders = []     # List to store stakeholder names
+    
+    # Function to add a crisis message
+    def add_crisis_message(self, message):
+        self.crisis_messages.append(message)
+        print("Crisis message added successfully.")
+    
+    # Function to add a stakeholder (e.g., an individual or department)
+    def add_stakeholder(self, stakeholder):
+        self.stakeholders.append(stakeholder)
+        print(f"Stakeholder '{stakeholder}' added successfully.")
+    
+    # Function to send a message to all stakeholders
+    def send_message_to_stakeholders(self, message):
+        if not self.stakeholders:
+            print("No stakeholders to send message to.")
+            return
+        print(f"\nSending message to all stakeholders: '{message}'\n")
+        for stakeholder in self.stakeholders:
+            print(f"Message sent to {stakeholder}: {message}")
+    
+    # Function to display all crisis messages
+    def display_crisis_messages(self):
+        if not self.crisis_messages:
+            print("No crisis messages available.")
+            return
+        print("\nCrisis Messages:")
+        for msg in self.crisis_messages:
+            print(f"- {msg}")
+
+# Main Application to run the Crisis Management Tool
+def run_crisis_management_tool():
+    tool = CrisisManagementTool()
+    
+    while True:
+        print("\nCrisis Management Communication Tool")
+        print("1. Add Crisis Message")
+        print("2. Add Stakeholder")
+        print("3. Send Message to Stakeholders")
+        print("4. Display All Crisis Messages")
+        print("5. Exit")
+        
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            message = input("Enter the crisis message: ")
+            tool.add_crisis_message(message)
+        elif choice == "2":
+            stakeholder = input("Enter stakeholder name: ")
+            tool.add_stakeholder(stakeholder)
+        elif choice == "3":
+            if not tool.crisis_messages:
+                print("No crisis messages available to send.")
+            else:
+                message = input("Enter the message to send to all stakeholders: ")
+                tool.send_message_to_stakeholders(message)
+        elif choice == "4":
+            tool.display_crisis_messages()
+        elif choice == "5":
+            print("Exiting the Crisis Management Tool.")
+            break
+        else:
+            print("Invalid choice, please try again.")
+
+# Run the tool
+if __name__ == "__main__":
+    run_crisis_management_tool()
