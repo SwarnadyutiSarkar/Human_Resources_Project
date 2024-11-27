@@ -1,0 +1,104 @@
+# Mental Health Resource Portal
+class MentalHealthPortal:
+    def __init__(self):
+        self.resources = {
+            "Crisis Hotlines": [
+                {"name": "National Suicide Prevention Lifeline", "phone": "1-800-273-TALK (8255)"},
+                {"name": "Crisis Text Line", "phone": "Text HOME to 741741"}
+            ],
+            "Support Groups": [
+                {"name": "National Alliance on Mental Illness (NAMI)", "link": "https://www.nami.org/Support-Education/Support-Groups"},
+                {"name": "Mental Health America (MHA)", "link": "https://www.mhanational.org/find-support-groups"}
+            ],
+            "Self-Care Tips": [
+                "Practice mindfulness and meditation.",
+                "Engage in physical activity like walking, yoga, or any preferred sport.",
+                "Ensure a balanced diet and adequate sleep.",
+                "Maintain a journal to track your emotions and thoughts.",
+                "Talk to someone you trust when feeling overwhelmed."
+            ]
+        }
+        self.emotional_states = []
+
+    # Function to view all available resources
+    def view_resources(self):
+        print("\nMental Health Resources Portal")
+        print("\nCrisis Hotlines:")
+        for resource in self.resources["Crisis Hotlines"]:
+            print(f"{resource['name']}: {resource['phone']}")
+
+        print("\nSupport Groups:")
+        for resource in self.resources["Support Groups"]:
+            print(f"{resource['name']}: {resource['link']}")
+
+        print("\nSelf-Care Tips:")
+        for tip in self.resources["Self-Care Tips"]:
+            print(f"- {tip}")
+
+    # Function to log emotional state
+    def log_emotional_state(self):
+        print("\nLog your emotional state:")
+        state = input("How are you feeling today? (Happy, Sad, Anxious, Angry, etc.): ")
+        self.emotional_states.append(state)
+        print(f"Your emotional state '{state}' has been logged.")
+    
+    # Function to view all logged emotional states
+    def view_emotional_states(self):
+        if not self.emotional_states:
+            print("\nNo emotional states logged yet.")
+        else:
+            print("\nLogged Emotional States:")
+            for state in self.emotional_states:
+                print(f"- {state}")
+    
+    # Function to give advice based on emotional state
+    def give_advice(self):
+        print("\nBased on your current emotional state, here are some tips:")
+        if not self.emotional_states:
+            print("You haven't logged any emotional states yet.")
+            return
+        
+        last_state = self.emotional_states[-1].lower()
+        
+        if "happy" in last_state:
+            print("Keep up the positive mindset! Engage in activities that continue to bring you joy.")
+        elif "sad" in last_state or "depressed" in last_state:
+            print("It's okay to feel sad sometimes. Reach out to someone close to you, and remember that you're not alone.")
+        elif "anxious" in last_state:
+            print("Try some relaxation techniques like deep breathing, meditation, or journaling to calm your mind.")
+        elif "angry" in last_state:
+            print("Try to release your anger in a healthy way, such as through physical activity or talking things out.")
+        else:
+            print("No specific advice for this state, but remember to take care of yourself, both mentally and physically.")
+
+# Main function to run the Mental Health Portal
+def run_mental_health_portal():
+    portal = MentalHealthPortal()
+
+    while True:
+        print("\nMental Health Resource Portal")
+        print("1. View Mental Health Resources")
+        print("2. Log Emotional State")
+        print("3. View Logged Emotional States")
+        print("4. Get Advice Based on Emotional State")
+        print("5. Exit")
+        
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            portal.view_resources()
+        elif choice == "2":
+            portal.log_emotional_state()
+        elif choice == "3":
+            portal.view_emotional_states()
+        elif choice == "4":
+            portal.give_advice()
+        elif choice == "5":
+            print("Exiting the Mental Health Resource Portal.")
+            break
+        else:
+            print("Invalid choice, please try again.")
+
+# Run the portal
+if __name__ == "__main__":
+    run_mental_health_portal()
