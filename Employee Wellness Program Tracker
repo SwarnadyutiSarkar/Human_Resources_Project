@@ -1,0 +1,90 @@
+# Employee Wellness Program Tracker
+class EmployeeWellnessTracker:
+    def __init__(self):
+        self.employees = {}  # Dictionary to store employee details
+        self.wellness_programs = ["Fitness Challenge", "Mental Health Workshop", "Wellness Seminar"]
+    
+    # Function to add an employee to the tracker
+    def add_employee(self, employee_id, name):
+        if employee_id in self.employees:
+            print(f"Employee {name} already exists.")
+            return
+        self.employees[employee_id] = {
+            "name": name,
+            "participation": {program: False for program in self.wellness_programs}
+        }
+        print(f"Employee {name} added successfully.")
+    
+    # Function to mark participation in a wellness program
+    def mark_participation(self, employee_id, program_name):
+        if employee_id not in self.employees:
+            print("Employee not found.")
+            return
+        if program_name not in self.wellness_programs:
+            print("Program not found.")
+            return
+        
+        self.employees[employee_id]["participation"][program_name] = True
+        print(f"Employee {self.employees[employee_id]['name']} has participated in {program_name}.")
+    
+    # Function to view all employees and their wellness program participation status
+    def view_participation(self):
+        if not self.employees:
+            print("No employees added.")
+            return
+        print("\nEmployee Wellness Program Participation:")
+        for employee_id, details in self.employees.items():
+            participation = [program for program, participated in details["participation"].items() if participated]
+            if participation:
+                print(f"Employee: {details['name']} (ID: {employee_id}) - Participated in: {', '.join(participation)}")
+            else:
+                print(f"Employee: {details['name']} (ID: {employee_id}) - No participation yet.")
+    
+    # Function to view participation of a specific employee
+    def view_employee_participation(self, employee_id):
+        if employee_id not in self.employees:
+            print("Employee not found.")
+            return
+        employee = self.employees[employee_id]
+        participation = [program for program, participated in employee["participation"].items() if participated]
+        if participation:
+            print(f"{employee['name']} (ID: {employee_id}) has participated in: {', '.join(participation)}")
+        else:
+            print(f"{employee['name']} (ID: {employee_id}) has not participated in any wellness programs.")
+
+# Main function to run the Employee Wellness Program Tracker
+def run_wellness_tracker():
+    tracker = EmployeeWellnessTracker()
+
+    while True:
+        print("\nEmployee Wellness Program Tracker")
+        print("1. Add Employee")
+        print("2. Mark Participation in Wellness Program")
+        print("3. View All Employee Participation")
+        print("4. View Specific Employee Participation")
+        print("5. Exit")
+        
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            employee_id = input("Enter employee ID: ")
+            name = input("Enter employee name: ")
+            tracker.add_employee(employee_id, name)
+        elif choice == "2":
+            employee_id = input("Enter employee ID: ")
+            program_name = input("Enter wellness program name (Fitness Challenge, Mental Health Workshop, Wellness Seminar): ")
+            tracker.mark_participation(employee_id, program_name)
+        elif choice == "3":
+            tracker.view_participation()
+        elif choice == "4":
+            employee_id = input("Enter employee ID to view participation: ")
+            tracker.view_employee_participation(employee_id)
+        elif choice == "5":
+            print("Exiting the Employee Wellness Program Tracker.")
+            break
+        else:
+            print("Invalid choice, please try again.")
+
+# Run the tracker
+if __name__ == "__main__":
+    run_wellness_tracker()
