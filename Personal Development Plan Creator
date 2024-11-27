@@ -1,0 +1,98 @@
+# Personal Development Plan Creator
+class PersonalDevelopmentPlan:
+    def __init__(self):
+        self.goals = {}  # Dictionary to store goals with descriptions and progress details
+    
+    # Function to add a new goal
+    def add_goal(self, goal_name, description):
+        if goal_name in self.goals:
+            print(f"Goal '{goal_name}' already exists.")
+            return
+        self.goals[goal_name] = {
+            "description": description,
+            "status": "Not Started",  # Initial status
+            "progress_percentage": 0,  # Initial progress percentage
+            "milestones": []  # List to store milestones
+        }
+        print(f"Goal '{goal_name}' added successfully.")
+    
+    # Function to update the progress of an existing goal
+    def update_progress(self, goal_name, progress_percentage, status):
+        if goal_name not in self.goals:
+            print(f"Goal '{goal_name}' does not exist.")
+            return
+        self.goals[goal_name]["progress_percentage"] = progress_percentage
+        self.goals[goal_name]["status"] = status
+        print(f"Progress updated for goal '{goal_name}' to {progress_percentage}% and status to '{status}'.")
+    
+    # Function to add a milestone for a specific goal
+    def add_milestone(self, goal_name, milestone):
+        if goal_name not in self.goals:
+            print(f"Goal '{goal_name}' does not exist.")
+            return
+        self.goals[goal_name]["milestones"].append(milestone)
+        print(f"Milestone '{milestone}' added to goal '{goal_name}'.")
+    
+    # Function to display all goals and their progress
+    def display_goals(self):
+        if not self.goals:
+            print("No goals set yet.")
+            return
+        print("\nPersonal Development Goals:")
+        for goal, details in self.goals.items():
+            milestones = ", ".join(details["milestones"]) if details["milestones"] else "No milestones set."
+            print(f"Goal: {goal}\n  Description: {details['description']}\n  Status: {details['status']}\n"
+                  f"  Progress: {details['progress_percentage']}%\n  Milestones: {milestones}\n")
+    
+    # Function to view the progress of a specific goal
+    def view_goal_progress(self, goal_name):
+        if goal_name not in self.goals:
+            print(f"Goal '{goal_name}' does not exist.")
+            return
+        details = self.goals[goal_name]
+        print(f"\nGoal: {goal_name}\n  Description: {details['description']}\n  Status: {details['status']}\n"
+              f"  Progress: {details['progress_percentage']}%\n  Milestones: {', '.join(details['milestones'])}\n")
+
+
+# Main function to run the Personal Development Plan Creator
+def run_personal_development_plan():
+    pdp = PersonalDevelopmentPlan()
+
+    while True:
+        print("\nPersonal Development Plan Creator")
+        print("1. Add a Goal")
+        print("2. Update Progress of a Goal")
+        print("3. Add Milestone to a Goal")
+        print("4. Display All Goals")
+        print("5. View Specific Goal Progress")
+        print("6. Exit")
+        
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            goal_name = input("Enter goal name: ")
+            description = input("Enter goal description: ")
+            pdp.add_goal(goal_name, description)
+        elif choice == "2":
+            goal_name = input("Enter goal name to update progress: ")
+            progress_percentage = int(input("Enter progress percentage: "))
+            status = input("Enter status (Not Started, In Progress, Completed): ")
+            pdp.update_progress(goal_name, progress_percentage, status)
+        elif choice == "3":
+            goal_name = input("Enter goal name to add milestone: ")
+            milestone = input("Enter milestone description: ")
+            pdp.add_milestone(goal_name, milestone)
+        elif choice == "4":
+            pdp.display_goals()
+        elif choice == "5":
+            goal_name = input("Enter goal name to view progress: ")
+            pdp.view_goal_progress(goal_name)
+        elif choice == "6":
+            print("Exiting the Personal Development Plan Creator.")
+            break
+        else:
+            print("Invalid choice, please try again.")
+
+# Run the tool
+if __name__ == "__main__":
+    run_personal_development_plan()
