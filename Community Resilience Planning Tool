@@ -1,0 +1,225 @@
+import sqlite3
+
+# Create a new database (or connect if it exists)
+def init_db():
+    conn = sqlite3.connect('community_resilience.db')
+    c = conn.cursor()
+
+    # Create tables
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS Community (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            population INTEGER,
+            infrastructure_status TEXT,
+            disaster_plan TEXT
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS Vulnerabilities (
+            id INTEGER PRIMARY KEY,
+            community_id INTEGER,
+            disaster_type TEXT,
+            vulnerability_level INTEGER,
+            FOREIGN KEY(community_id) REFERENCES Community(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS ResiliencePlans (
+            id INTEGER PRIMARY KEY,
+            community_id INTEGER,
+            plan_type TEXT,
+            status TEXT,
+            FOREIGN KEY(community_id) REFERENCES Community(id)
+        )
+    ''')
+
+    conn.commit()
+    conn.close()
+
+# Initialize the database
+init_db()
+--------------------------
+from flask import Flask, render_template, request, redirect, url_for
+import sqlite3
+
+app = Flask(__name__)
+
+# Database helper functions
+def get_communities():
+    conn = sqlite3.connect('community_resilience.db')
+    c = conn.cursor()
+    c.execute('SELECT * FROM Community')
+    communities = c.fetchall()
+    conn.close()
+    return communities
+
+def get_vulnerabilities(community_id):
+    conn = sqlite3.connect('community_resilience.db')
+    c = conn.cursor()
+    c.execute('SELECT * FROM Vulnerabilities WHERE community_id = ?', (community_id,))
+    vulnerabilities = c.fetchall()
+    conn.close()
+    return vulnerabilities
+
+def get_resilience_plans(community_id):
+    conn = sqlite3.connect('community_resilience.db')
+    c = conn.cursor()
+    c.execute('SELECT * FROM ResiliencePlans WHERE community_id = ?', (community_id,))
+    plans = c.fetchall()
+    conn.close()
+    return plans
+
+# Home Route - Display communities
+@app.route('/')
+def home():
+    communities = get_communities()
+    return render_template('index.html', communities=communities)
+
+# Add Community Route
+@app.route('/add_community', methods=['GET', 'POST'])
+def add_community():
+    if request.method == 'POST':
+        name = request.form['name']
+        population = request.form['population']
+        infrastructure_status = request.form['infrastructure_status']
+        disaster_plan = request.form['disaster_plan']
+
+        conn = sqlite3.connect('community_resilience.db')
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO Community (name, population, infrastructure_status, disaster_plan)
+            VALUES (?, ?, ?, ?)
+        ''', (name, population, infrastructure_status, disaster_plan))
+        conn.commit()
+        conn.close()
+        return redirect(url_for('home'))
+
+    return render_template('add_community.html')
+
+# View Community Details - Show vulnerabilities and resilience plans
+@app.route('/community/<int:community_id>')
+def community_detail(community_id):
+    community = get_communities()[community_id - 1]  # Adjust for index
+    vulnerabilities = get_vulnerabilities(community_id)
+    resilience_plans = get_resilience_plans(community_id)
+    return render_template('community_detail.html', community=community, vulnerabilities=vulnerabilities, resilience_plans=resilience_plans)
+
+# Add Vulnerability Route
+@app.route('/add_vulnerability/<int:community_id>', methods=['GET', 'POST'])
+def add_vulnerability(community_id):
+    if request.method == 'POST':
+        disaster_type = request.form['disaster_type']
+        vulnerability_level = request.form['vulnerability_level']
+
+        conn = sqlite3.connect('community_resilience.db')
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO Vulnerabilities (community_id, disaster_type, vulnerability_level)
+            VALUES (?, ?, ?)
+        ''', (community_id, disaster_type, vulnerability_level))
+        conn.commit()
+        conn.close()
+        return redirect(url_for('community_detail', community_id=community_id))
+
+    return render_template('add_vulnerability.html', community_id=community_id)
+
+# Add Resilience Plan Route
+@app.route('/add_resilience_plan/<int:community_id>', methods=['GET', 'POST'])
+def add_resilience_plan(community_id):
+    if request.method == 'POST':
+        plan_type = request.form['plan_type']
+        status = request.form['status']
+
+        conn = sqlite3.connect('community_resilience.db')
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO ResiliencePlans (community_id, plan_type, status)
+            VALUES (?, ?, ?)
+        ''', (community_id, plan_type, status))
+        conn.commit()
+        conn.close()
+        return redirect(url_for('community_detail', community_id=community_id))
+
+    return render_template('add_resilience_plan.html', community_id=community_id)
+
+# Run the Flask app
+if __name__ == '__main__':
+    app.run(debug=True)
+-------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Community Resilience Planning</title>
+</head>
+<body>
+    <h1>Community Resilience Planning</h1>
+    <h2>Communities</h2>
+    <ul>
+        {% for community in communities %}
+            <li><a href="{{ url_for('community_detail', community_id=community[0]) }}">{{ community[1] }}</a></li>
+        {% endfor %}
+    </ul>
+    <br><a href="{{ url_for('add_community') }}">Add New Community</a>
+</body>
+</html>
+--------------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Community</title>
+</head>
+<body>
+    <h1>Add Community</h1>
+    <form method="POST">
+        <label for="name">Community Name:</label><br>
+        <input type="text" name="name" required><br><br>
+        <label for="population">Population:</label><br>
+        <input type="number" name="population" required><br><br>
+        <label for="infrastructure_status">Infrastructure Status:</label><br>
+        <input type="text" name="infrastructure_status" required><br><br>
+        <label for="disaster_plan">Disaster Plan Status:</label><br>
+        <input type="text" name="disaster_plan" required><br><br>
+        <input type="submit" value="Add Community">
+    </form>
+    <br><a href="/">Back to Home</a>
+</body>
+</html>
+-----------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Community Details</title>
+</head>
+<body>
+    <h1>{{ community[1] }} - Details</h1>
+    <p><strong>Population:</strong> {{ community[2] }}</p>
+    <p><strong>Infrastructure Status:</strong> {{ community[3] }}</p>
+    <p><strong>Disaster Plan Status:</strong> {{ community[4] }}</p>
+
+    <h2>Vulnerabilities</h2>
+    <ul>
+        {% for vulnerability in vulnerabilities %}
+            <li>{{ vulnerability[2] }}: Level {{ vulnerability[3] }}</li>
+        {% endfor %}
+    </ul>
+    <br><a href="{{ url_for('add_vulnerability', community_id=community[0]) }}">Add Vulnerability</a>
+
+    <h2>Resilience Plans</h2>
+    <ul>
+        {% for plan in resilience_plans %}
+            <li>{{ plan[2] }} - Status: {{ plan[3] }}</li>
+        {% endfor %}
+    </ul>
+    <br><a href="{{ url_for('add_resilience_plan', community_id=community[0]) }}">Add Resilience Plan</a>
+
+    <br><a href="/">Back to Home</a>
+</body>
+</html>
+
+------------------------------------
