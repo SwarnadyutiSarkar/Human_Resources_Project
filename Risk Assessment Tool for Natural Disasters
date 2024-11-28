@@ -1,0 +1,111 @@
+from flask import Flask, render_template, request, jsonify
+import pandas as pd
+
+app = Flask(__name__)
+
+# Sample Disaster Data (Mock Data for demonstration)
+disaster_data = {
+    'Region': ['California', 'Florida', 'Texas', 'Alaska', 'New York'],
+    'Earthquake_Risk': [8, 3, 6, 9, 2],  # 1-10 scale
+    'Flood_Risk': [7, 9, 6, 2, 8],  # 1-10 scale
+    'Hurricane_Risk': [3, 10, 7, 1, 5],  # 1-10 scale
+    'Wildfire_Risk': [9, 4, 6, 1, 2],  # 1-10 scale
+    'Population_Density': [250, 400, 300, 1, 500],  # People per square km
+    'Elevation': [30, 10, 150, 500, 100],  # in meters
+}
+
+# Convert to DataFrame for easier analysis
+df = pd.DataFrame(disaster_data)
+
+# Home Route - Display the risk assessment form
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+# Risk Assessment Route - Calculate and show the risk for the selected region and disaster type
+@app.route('/assess_risk', methods=['POST'])
+def assess_risk():
+    region = request.form['region']
+    disaster_type = request.form['disaster_type']
+
+    # Find the selected region data
+    region_data = df[df['Region'] == region].iloc[0]
+
+    # Get the disaster risk data
+    risk_score = region_data[disaster_type + '_Risk']
+    population_density = region_data['Population_Density']
+    elevation = region_data['Elevation']
+
+    # Calculate risk category (basic logic for demo)
+    if risk_score > 7:
+        risk_category = 'High Risk'
+    elif risk_score > 4:
+        risk_category = 'Medium Risk'
+    else:
+        risk_category = 'Low Risk'
+
+    # Add more considerations based on population density and elevation
+    if population_density > 350:
+        risk_category += ' - High Population Density'
+    if elevation < 100:
+        risk_category += ' - Low Elevation'
+
+    return render_template('risk_result.html', region=region, disaster_type=disaster_type,
+                           risk_score=risk_score, risk_category=risk_category, population_density=population_density,
+                           elevation=elevation)
+
+# Run the Flask app
+if __name__ == '__main__':
+    app.run(debug=True)
+
+--------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Natural Disaster Risk Assessment</title>
+</head>
+<body>
+    <h1>Natural Disaster Risk Assessment</h1>
+    <form action="/assess_risk" method="POST">
+        <label for="region">Select Region:</label>
+        <select name="region" id="region" required>
+            <option value="California">California</option>
+            <option value="Florida">Florida</option>
+            <option value="Texas">Texas</option>
+            <option value="Alaska">Alaska</option>
+            <option value="New York">New York</option>
+        </select><br><br>
+
+        <label for="disaster_type">Select Disaster Type:</label>
+        <select name="disaster_type" id="disaster_type" required>
+            <option value="Earthquake">Earthquake</option>
+            <option value="Flood">Flood</option>
+            <option value="Hurricane">Hurricane</option>
+            <option value="Wildfire">Wildfire</option>
+        </select><br><br>
+
+        <input type="submit" value="Assess Risk">
+    </form>
+</body>
+</html>
+----------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Risk Assessment Result</title>
+</head>
+<body>
+    <h1>Risk Assessment Result for {{ region }}</h1>
+    <p><strong>Disaster Type:</strong> {{ disaster_type }}</p>
+    <p><strong>Risk Score:</strong> {{ risk_score }}</p>
+    <p><strong>Risk Category:</strong> {{ risk_category }}</p>
+    <p><strong>Population Density:</strong> {{ population_density }} people per square km</p>
+    <p><strong>Elevation:</strong> {{ elevation }} meters above sea level</p>
+    <br>
+    <a href="/">Back to Home</a>
+</body>
+</html>
+
+------------------------------
