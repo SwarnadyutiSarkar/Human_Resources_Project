@@ -1,0 +1,91 @@
+# Import necessary libraries
+from flask import Flask, render_template, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+
+# Initialize Flask app
+app = Flask(__name__)
+
+# Configure the SQLite database
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///disaster_response.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Database Models
+class DisasterReport(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    location = db.Column(db.String(200), nullable=False)
+    status = db.Column(db.String(20), default="Unresolved")
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+class Response(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    report_id = db.Column(db.Integer, db.ForeignKey('disaster_report.id'), nullable=False)
+    responder_name = db.Column(db.String(100), nullable=False)
+    response_message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    report = db.relationship('DisasterReport', backref=db.backref('responses', lazy=True))
+
+# Create the database
+with app.app_context():
+    db.create_all()
+
+# Routes
+
+# Home Route - Display all disaster reports
+@app.route('/')
+def index():
+    reports = DisasterReport.query.all()
+    return render_template('index.html', reports=reports)
+
+# Route for submitting a new disaster report
+@app.route('/submit_report', methods=['GET', 'POST'])
+def submit_report():
+    if request.method == 'POST':
+        title = request.form['title']
+        description = request.form['description']
+        location = request.form['location']
+        
+        new_report = DisasterReport(title=title, description=description, location=location)
+        db.session.add(new_report)
+        db.session.commit()
+        
+        return redirect(url_for('index'))
+    
+    return render_template('submit_report.html')
+
+# Route to view a single disaster report and respond to it
+@app.route('/report/<int:report_id>', methods=['GET', 'POST'])
+def view_report(report_id):
+    report = DisasterReport.query.get_or_404(report_id)
+    
+    if request.method == 'POST':
+        responder_name = request.form['responder_name']
+        response_message = request.form['response_message']
+        
+        new_response = Response(report_id=report.id, responder_name=responder_name, response_message=response_message)
+        db.session.add(new_response)
+        db.session.commit()
+        
+        return redirect(url_for('view_report', report_id=report.id))
+    
+    return render_template('view_report.html', report=report)
+
+# Route to update the status of a report
+@app.route('/update_status/<int:report_id>', methods=['POST'])
+def update_status(report_id):
+    report = DisasterReport.query.get_or_404(report_id)
+    report.status = request.form['status']
+    db.session.commit()
+    
+    return redirect(url_for('view_report', report_id=report.id))
+
+# Error Handling Route
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+# Run the Flask app
+if __name__ == '__main__':
+    app.run(debug=True)
