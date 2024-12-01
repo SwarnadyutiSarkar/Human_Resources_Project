@@ -1,0 +1,152 @@
+import json
+from datetime import datetime
+
+class SkillDevelopmentTracker:
+    def __init__(self):
+        self.employees = {}
+    
+    def add_employee(self):
+        print("Adding a new employee.")
+        name = input("Enter employee name: ")
+        if name in self.employees:
+            print("Employee already exists.")
+        else:
+            self.employees[name] = {
+                'name': name,
+                'skills': {},
+                'trainings': [],
+                'goals': []
+            }
+            print(f"Employee {name} added successfully.")
+
+    def record_training(self):
+        print("Recording a new training.")
+        name = input("Enter employee name: ")
+        if name not in self.employees:
+            print("Employee not found.")
+            return
+        
+        training_name = input("Enter the training name: ")
+        training_date = input("Enter the training date (YYYY-MM-DD): ")
+        try:
+            training_date = datetime.strptime(training_date, "%Y-%m-%d")
+        except ValueError:
+            print("Invalid date format. Please use YYYY-MM-DD.")
+            return
+        
+        skills_gained = input("Enter skills gained (comma separated): ").split(',')
+        skills_gained = [skill.strip() for skill in skills_gained]
+
+        self.employees[name]['trainings'].append({
+            'training_name': training_name,
+            'training_date': training_date,
+            'skills_gained': skills_gained
+        })
+        for skill in skills_gained:
+            if skill not in self.employees[name]['skills']:
+                self.employees[name]['skills'][skill] = 0
+            self.employees[name]['skills'][skill] += 1
+
+        print(f"Training recorded for {name}.")
+
+    def set_goal(self):
+        print("Setting a new skill development goal.")
+        name = input("Enter employee name: ")
+        if name not in self.employees:
+            print("Employee not found.")
+            return
+        
+        goal = input("Enter the skill development goal: ")
+        target_date = input("Enter target date for achieving the goal (YYYY-MM-DD): ")
+        try:
+            target_date = datetime.strptime(target_date, "%Y-%m-%d")
+        except ValueError:
+            print("Invalid date format. Please use YYYY-MM-DD.")
+            return
+
+        self.employees[name]['goals'].append({
+            'goal': goal,
+            'target_date': target_date
+        })
+        print(f"Goal set for {name}: {goal} by {target_date.date()}.")
+
+    def track_progress(self):
+        print("Tracking progress for employees.")
+        name = input("Enter employee name: ")
+        if name not in self.employees:
+            print("Employee not found.")
+            return
+        
+        print(f"Progress for {name}:")
+        if self.employees[name]['trainings']:
+            print("Trainings attended:")
+            for training in self.employees[name]['trainings']:
+                print(f"- {training['training_name']} on {training['training_date'].date()}")
+                print(f"  Skills gained: {', '.join(training['skills_gained'])}")
+        else:
+            print("No trainings recorded.")
+
+        if self.employees[name]['goals']:
+            print("Skill development goals:")
+            for goal in self.employees[name]['goals']:
+                print(f"- {goal['goal']} (Target date: {goal['target_date'].date()})")
+        else:
+            print("No goals set.")
+        
+        print("Current skills:")
+        if self.employees[name]['skills']:
+            for skill, count in self.employees[name]['skills'].items():
+                print(f"- {skill}: {count} training sessions attended")
+        else:
+            print("No skills recorded.")
+
+    def save_data(self, filename):
+        with open(filename, 'w') as file:
+            json.dump(self.employees, file, default=str, indent=4)
+        print(f"\nData saved to {filename}.")
+
+    def load_data(self, filename):
+        try:
+            with open(filename, 'r') as file:
+                self.employees = json.load(file)
+            print(f"\nData loaded from {filename}.")
+        except FileNotFoundError:
+            print("\nFile not found.")
+
+def main():
+    tracker = SkillDevelopmentTracker()
+
+    while True:
+        print("\nSkill Development Tracker")
+        print("1. Add Employee")
+        print("2. Record Training")
+        print("3. Set Skill Development Goal")
+        print("4. Track Progress")
+        print("5. Save Data")
+        print("6. Load Data")
+        print("7. Exit")
+
+        choice = input("Choose an option: ")
+
+        if choice == '1':
+            tracker.add_employee()
+        elif choice == '2':
+            tracker.record_training()
+        elif choice == '3':
+            tracker.set_goal()
+        elif choice == '4':
+            tracker.track_progress()
+        elif choice == '5':
+            filename = input("Enter filename to save data: ")
+            tracker.save_data(filename)
+        elif choice == '6':
+            filename = input("Enter filename to load data from: ")
+            tracker.load_data(filename)
+        elif choice == '7':
+            print("Exiting the Skill Development Tracker.")
+            break
+        else:
+            print("Invalid choice, please try again.")
+
+if __name__ == "__main__":
+    main()
