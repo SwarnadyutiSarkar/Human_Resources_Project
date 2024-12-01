@@ -1,0 +1,114 @@
+import json
+import statistics
+
+class EmployeeEngagementSurvey:
+    def __init__(self):
+        self.survey_questions = []
+        self.responses = []
+
+    def create_survey(self):
+        print("Creating Survey")
+        while True:
+            question = input("Enter a survey question (or type 'done' to finish): ")
+            if question.lower() == 'done':
+                break
+            self.survey_questions.append(question)
+
+    def collect_responses(self):
+        print("\nCollecting responses from employees")
+        while True:
+            employee_name = input("Enter employee name (or type 'done' to finish): ")
+            if employee_name.lower() == 'done':
+                break
+            print(f"\nSurvey for {employee_name}")
+            response = []
+            for question in self.survey_questions:
+                while True:
+                    try:
+                        answer = int(input(f"{question} (Rate from 1 to 5): "))
+                        if answer < 1 or answer > 5:
+                            print("Please rate between 1 and 5.")
+                        else:
+                            response.append(answer)
+                            break
+                    except ValueError:
+                        print("Invalid input, please enter a number between 1 and 5.")
+            self.responses.append({"employee": employee_name, "responses": response})
+
+    def analyze_responses(self):
+        print("\nAnalyzing Survey Responses\n")
+        analysis = {}
+        for i, question in enumerate(self.survey_questions):
+            answers = [response["responses"][i] for response in self.responses]
+            average = statistics.mean(answers)
+            median = statistics.median(answers)
+            stdev = statistics.stdev(answers) if len(answers) > 1 else 0
+            analysis[question] = {
+                "average": average,
+                "median": median,
+                "stdev": stdev
+            }
+
+        return analysis
+
+    def generate_report(self, analysis):
+        print("\nSurvey Analysis Report\n")
+        for question, stats in analysis.items():
+            print(f"Question: {question}")
+            print(f"  Average Rating: {stats['average']:.2f}")
+            print(f"  Median Rating: {stats['median']}")
+            print(f"  Standard Deviation: {stats['stdev']:.2f}\n")
+
+    def save_responses(self, filename):
+        with open(filename, 'w') as file:
+            json.dump(self.responses, file, indent=4)
+        print(f"\nResponses saved to {filename}.")
+
+    def load_responses(self, filename):
+        try:
+            with open(filename, 'r') as file:
+                self.responses = json.load(file)
+            print(f"\nResponses loaded from {filename}.")
+        except FileNotFoundError:
+            print("\nFile not found.")
+
+def main():
+    survey_tool = EmployeeEngagementSurvey()
+
+    while True:
+        print("\nEmployee Engagement Survey Tool")
+        print("1. Create Survey")
+        print("2. Collect Responses")
+        print("3. Analyze Responses")
+        print("4. Generate Report")
+        print("5. Save Responses")
+        print("6. Load Responses")
+        print("7. Exit")
+
+        choice = input("Choose an option: ")
+
+        if choice == '1':
+            survey_tool.create_survey()
+        elif choice == '2':
+            survey_tool.collect_responses()
+        elif choice == '3':
+            analysis = survey_tool.analyze_responses()
+        elif choice == '4':
+            if 'analysis' in locals():
+                survey_tool.generate_report(analysis)
+            else:
+                print("Please analyze responses first.")
+        elif choice == '5':
+            filename = input("Enter filename to save responses: ")
+            survey_tool.save_responses(filename)
+        elif choice == '6':
+            filename = input("Enter filename to load responses from: ")
+            survey_tool.load_responses(filename)
+        elif choice == '7':
+            print("Exiting the Survey Tool.")
+            break
+        else:
+            print("Invalid choice, please try again.")
+
+if __name__ == "__main__":
+    main()
