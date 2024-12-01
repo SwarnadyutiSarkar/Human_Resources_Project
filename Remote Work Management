@@ -1,0 +1,187 @@
+import json
+from datetime import datetime
+
+class RemoteWorkManagementTool:
+    def __init__(self):
+        self.employees = {}
+        self.projects = {}
+    
+    def add_employee(self):
+        print("Adding a new employee.")
+        name = input("Enter employee name: ")
+        if name in self.employees:
+            print("Employee already exists.")
+        else:
+            self.employees[name] = {
+                'name': name,
+                'availability': 'Available',
+                'assigned_tasks': []
+            }
+            print(f"Employee {name} added successfully.")
+    
+    def assign_task(self):
+        print("Assigning a new task.")
+        project_name = input("Enter project name: ")
+        if project_name not in self.projects:
+            print("Project does not exist.")
+            return
+        
+        name = input("Enter employee name: ")
+        if name not in self.employees:
+            print("Employee not found.")
+            return
+        
+        task_name = input("Enter task name: ")
+        due_date = input("Enter task due date (YYYY-MM-DD): ")
+        try:
+            due_date = datetime.strptime(due_date, "%Y-%m-%d")
+        except ValueError:
+            print("Invalid date format. Please use YYYY-MM-DD.")
+            return
+        
+        task = {
+            'task_name': task_name,
+            'due_date': due_date,
+            'status': 'Not Started'
+        }
+        self.employees[name]['assigned_tasks'].append(task)
+        self.projects[project_name]['tasks'].append(task)
+        
+        print(f"Task '{task_name}' assigned to {name} for project '{project_name}'.")
+
+    def update_task_status(self):
+        print("Updating task status.")
+        name = input("Enter employee name: ")
+        if name not in self.employees:
+            print("Employee not found.")
+            return
+        
+        print(f"Tasks assigned to {name}:")
+        if not self.employees[name]['assigned_tasks']:
+            print("No tasks assigned.")
+            return
+        
+        for i, task in enumerate(self.employees[name]['assigned_tasks']):
+            print(f"{i + 1}. {task['task_name']} - Due Date: {task['due_date'].date()} - Status: {task['status']}")
+        
+        task_index = int(input("Enter the task number to update: ")) - 1
+        if task_index < 0 or task_index >= len(self.employees[name]['assigned_tasks']):
+            print("Invalid task number.")
+            return
+        
+        status = input("Enter new status (Not Started, In Progress, Completed): ")
+        if status not in ['Not Started', 'In Progress', 'Completed']:
+            print("Invalid status.")
+            return
+        
+        self.employees[name]['assigned_tasks'][task_index]['status'] = status
+        print(f"Task status updated to '{status}' for task '{self.employees[name]['assigned_tasks'][task_index]['task_name']}'.")
+
+    def view_team_tasks(self):
+        print("Viewing tasks for the team.")
+        project_name = input("Enter project name: ")
+        if project_name not in self.projects:
+            print("Project not found.")
+            return
+        
+        print(f"Tasks for project '{project_name}':")
+        if not self.projects[project_name]['tasks']:
+            print("No tasks assigned.")
+            return
+        
+        for task in self.projects[project_name]['tasks']:
+            print(f"Task: {task['task_name']} - Due Date: {task['due_date'].date()} - Status: {task['status']}")
+    
+    def add_project(self):
+        print("Adding a new project.")
+        project_name = input("Enter project name: ")
+        if project_name in self.projects:
+            print("Project already exists.")
+        else:
+            self.projects[project_name] = {
+                'project_name': project_name,
+                'tasks': []
+            }
+            print(f"Project '{project_name}' added successfully.")
+    
+    def update_employee_availability(self):
+        print("Updating employee availability.")
+        name = input("Enter employee name: ")
+        if name not in self.employees:
+            print("Employee not found.")
+            return
+        
+        availability = input("Enter availability status (Available, On Leave, Busy): ")
+        if availability not in ['Available', 'On Leave', 'Busy']:
+            print("Invalid availability status.")
+            return
+        
+        self.employees[name]['availability'] = availability
+        print(f"Employee {name}'s availability updated to {availability}.")
+    
+    def view_team_availability(self):
+        print("Viewing team availability.")
+        for name, details in self.employees.items():
+            print(f"{name}: {details['availability']}")
+    
+    def save_data(self, filename):
+        with open(filename, 'w') as file:
+            json.dump({'employees': self.employees, 'projects': self.projects}, file, default=str, indent=4)
+        print(f"\nData saved to {filename}.")
+
+    def load_data(self, filename):
+        try:
+            with open(filename, 'r') as file:
+                data = json.load(file)
+                self.employees = data['employees']
+                self.projects = data['projects']
+            print(f"\nData loaded from {filename}.")
+        except FileNotFoundError:
+            print("\nFile not found.")
+
+def main():
+    tool = RemoteWorkManagementTool()
+
+    while True:
+        print("\nRemote Work Management Tool")
+        print("1. Add Employee")
+        print("2. Assign Task")
+        print("3. Update Task Status")
+        print("4. View Team Tasks")
+        print("5. Add Project")
+        print("6. Update Employee Availability")
+        print("7. View Team Availability")
+        print("8. Save Data")
+        print("9. Load Data")
+        print("10. Exit")
+
+        choice = input("Choose an option: ")
+
+        if choice == '1':
+            tool.add_employee()
+        elif choice == '2':
+            tool.assign_task()
+        elif choice == '3':
+            tool.update_task_status()
+        elif choice == '4':
+            tool.view_team_tasks()
+        elif choice == '5':
+            tool.add_project()
+        elif choice == '6':
+            tool.update_employee_availability()
+        elif choice == '7':
+            tool.view_team_availability()
+        elif choice == '8':
+            filename = input("Enter filename to save data: ")
+            tool.save_data(filename)
+        elif choice == '9':
+            filename = input("Enter filename to load data from: ")
+            tool.load_data(filename)
+        elif choice == '10':
+            print("Exiting the Remote Work Management Tool.")
+            break
+        else:
+            print("Invalid choice, please try again.")
+
+if __name__ == "__main__":
+    main()
