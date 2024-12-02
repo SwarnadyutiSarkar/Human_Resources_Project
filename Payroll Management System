@@ -1,0 +1,179 @@
+# app.py (Main Flask Application)
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
+import datetime
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///payroll_system.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Database Models
+class Employee(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    hourly_rate = db.Column(db.Float, nullable=False)
+    hours_worked = db.Column(db.Float, nullable=False)
+
+class Payroll(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'))
+    salary = db.Column(db.Float, nullable=False)
+    tax = db.Column(db.Float, nullable=False)
+    net_salary = db.Column(db.Float, nullable=False)
+    date_generated = db.Column(db.Date, default=datetime.date.today)
+    employee = db.relationship('Employee', backref='payrolls')
+
+# Utility functions for tax calculation
+def calculate_tax(salary):
+    # Simplified tax calculation (e.g., 20% tax for salary above $1000)
+    if salary > 1000:
+        tax = salary * 0.20  # 20% tax for salary above $1000
+    else:
+        tax = salary * 0.10  # 10% tax for salary below $1000
+    return tax
+
+def calculate_net_salary(salary, tax):
+    return salary - tax
+
+# Routes and Views
+@app.route('/')
+def index():
+    employees = Employee.query.all()
+    return render_template('index.html', employees=employees)
+
+@app.route('/add_employee', methods=['GET', 'POST'])
+def add_employee():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        hourly_rate = request.form['hourly_rate']
+        hours_worked = request.form['hours_worked']
+        new_employee = Employee(name=name, email=email, hourly_rate=float(hourly_rate), hours_worked=float(hours_worked))
+        db.session.add(new_employee)
+        db.session.commit()
+        flash('Employee added successfully!', 'success')
+        return redirect(url_for('index'))
+    return render_template('add_employee.html')
+
+@app.route('/generate_payroll/<int:employee_id>', methods=['GET', 'POST'])
+def generate_payroll(employee_id):
+    employee = Employee.query.get(employee_id)
+    if request.method == 'POST':
+        salary = employee.hourly_rate * employee.hours_worked
+        tax = calculate_tax(salary)
+        net_salary = calculate_net_salary(salary, tax)
+        
+        payroll = Payroll(employee_id=employee.id, salary=salary, tax=tax, net_salary=net_salary)
+        db.session.add(payroll)
+        db.session.commit()
+        flash('Payroll generated successfully!', 'success')
+        return redirect(url_for('view_payroll', payroll_id=payroll.id))
+    return render_template('generate_payroll.html', employee=employee)
+
+@app.route('/view_payroll/<int:payroll_id>')
+def view_payroll(payroll_id):
+    payroll = Payroll.query.get(payroll_id)
+    return render_template('view_payroll.html', payroll=payroll)
+
+@app.route('/view_all_payrolls')
+def view_all_payrolls():
+    payrolls = Payroll.query.all()
+    return render_template('view_all_payrolls.html', payrolls=payrolls)
+
+# Run the application
+if __name__ == '__main__':
+    db.create_all()
+    app.run(debug=True)
+--------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Payroll Management System</title>
+</head>
+<body>
+    <h2>Welcome to the Payroll Management System</h2>
+    <h3>Employee List</h3>
+    <ul>
+        {% for employee in employees %}
+            <li>{{ employee.name }} - <a href="{{ url_for('generate_payroll', employee_id=employee.id) }}">Generate Payroll</a></li>
+        {% endfor %}
+    </ul>
+    <a href="{{ url_for('add_employee') }}">Add New Employee</a>
+    <br>
+    <a href="{{ url_for('view_all_payrolls') }}">View All Payrolls</a>
+</body>
+</html>
+--------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Employee</title>
+</head>
+<body>
+    <h2>Add New Employee</h2>
+    <form method="POST">
+        <input type="text" name="name" placeholder="Employee Name" required>
+        <input type="email" name="email" placeholder="Employee Email" required>
+        <input type="number" step="0.01" name="hourly_rate" placeholder="Hourly Rate" required>
+        <input type="number" step="0.01" name="hours_worked" placeholder="Hours Worked" required>
+        <button type="submit">Add Employee</button>
+    </form>
+    <a href="{{ url_for('index') }}">Back to Dashboard</a>
+</body>
+</html>
+----------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Generate Payroll for {{ employee.name }}</title>
+</head>
+<body>
+    <h2>Generate Payroll for {{ employee.name }}</h2>
+    <form method="POST">
+        <p><strong>Hourly Rate:</strong> {{ employee.hourly_rate }}</p>
+        <p><strong>Hours Worked:</strong> {{ employee.hours_worked }}</p>
+        <button type="submit">Generate Payroll</button>
+    </form>
+    <a href="{{ url_for('index') }}">Back to Dashboard</a>
+</body>
+</html>
+----------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>View Payroll</title>
+</head>
+<body>
+    <h2>Payroll for {{ payroll.employee.name }}</h2>
+    <p><strong>Salary:</strong> {{ payroll.salary }}</p>
+    <p><strong>Tax Deducted:</strong> {{ payroll.tax }}</p>
+    <p><strong>Net Salary:</strong> {{ payroll.net_salary }}</p>
+    <p><strong>Date Generated:</strong> {{ payroll.date_generated }}</p>
+    <a href="{{ url_for('index') }}">Back to Dashboard</a>
+</body>
+</html>
+--------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>View All Payrolls</title>
+</head>
+<body>
+    <h2>All Payrolls</h2>
+    <ul>
+        {% for payroll in payrolls %}
+            <li>{{ payroll.employee.name }} - {{ payroll.salary }} - <a href="{{ url_for('view_payroll', payroll_id=payroll.id) }}">View Payroll</a></li>
+        {% endfor %}
+    </ul>
+    <a href="{{ url_for('index') }}">Back to Dashboard</a>
+</body>
+</html>
+----------------------
