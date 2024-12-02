@@ -1,0 +1,221 @@
+# app.py (Main Flask Application)
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lms.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Database Models
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(100), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
+    courses = db.relationship('Course', secondary='enrollments')
+
+class Course(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(255), nullable=False)
+    instructor = db.Column(db.String(100), nullable=False)
+    enrollments = db.relationship('User', secondary='enrollments')
+
+class Enrollment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'))
+
+# Routes and Views
+@app.route('/')
+def index():
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        courses = Course.query.all()
+        return render_template('index.html', user=user, courses=courses)
+    return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        user = User.query.filter_by(email=email).first()
+        
+        if user and check_password_hash(user.password, password):
+            session['user_id'] = user.id
+            flash('Login successful!', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid credentials. Please try again.', 'danger')
+    
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        hashed_password = generate_password_hash(password)
+        
+        new_user = User(username=username, email=email, password=hashed_password)
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('Account created successfully! Please log in.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('login'))
+
+@app.route('/courses')
+def courses():
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        courses = Course.query.all()
+        return render_template('courses.html', user=user, courses=courses)
+    return redirect(url_for('login'))
+
+@app.route('/enroll/<int:course_id>')
+def enroll(course_id):
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        course = Course.query.get(course_id)
+        if course not in user.courses:
+            user.courses.append(course)
+            db.session.commit()
+            flash(f'You have been enrolled in {course.title}', 'success')
+        else:
+            flash(f'You are already enrolled in {course.title}', 'warning')
+        return redirect(url_for('courses'))
+    return redirect(url_for('login'))
+
+# Admin Routes
+@app.route('/admin/courses', methods=['GET', 'POST'])
+def admin_courses():
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        if user.is_admin:
+            if request.method == 'POST':
+                title = request.form['title']
+                description = request.form['description']
+                instructor = request.form['instructor']
+                new_course = Course(title=title, description=description, instructor=instructor)
+                db.session.add(new_course)
+                db.session.commit()
+                flash('New course created successfully!', 'success')
+            courses = Course.query.all()
+            return render_template('admin_courses.html', courses=courses)
+        flash('You do not have admin access.', 'danger')
+        return redirect(url_for('index'))
+    return redirect(url_for('login'))
+
+# Run the application
+if __name__ == '__main__':
+    db.create_all()
+    app.run(debug=True)
+
+-----------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+    <h2>Login</h2>
+    <form method="POST">
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <button type="submit">Login</button>
+    </form>
+    <p>Don't have an account? <a href="{{ url_for('register') }}">Register</a></p>
+</body>
+</html>
+------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+</head>
+<body>
+    <h2>Register</h2>
+    <form method="POST">
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <button type="submit">Register</button>
+    </form>
+    <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+</body>
+</html>
+
+--------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+</head>
+<body>
+    <h2>Welcome, {{ user.username }}</h2>
+    <a href="{{ url_for('logout') }}">Logout</a>
+    <h3>Available Courses</h3>
+    <ul>
+        {% for course in courses %}
+            <li>{{ course.title }} - <a href="{{ url_for('enroll', course_id=course.id) }}">Enroll</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+-----------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Courses</title>
+</head>
+<body>
+    <h2>Courses</h2>
+    <a href="{{ url_for('index') }}">Back to Dashboard</a>
+    <ul>
+        {% for course in courses %}
+            <li>{{ course.title }} - <a href="{{ url_for('enroll', course_id=course.id) }}">Enroll</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+---------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Courses</title>
+</head>
+<body>
+    <h2>Admin: Courses</h2>
+    <form method="POST">
+        <input type="text" name="title" placeholder="Course Title" required>
+        <textarea name="description" placeholder="Course Description" required></textarea>
+        <input type="text" name="instructor" placeholder="Instructor" required>
+        <button type="submit">Create Course</button>
+    </form>
+    <h3>Existing Courses</h3>
+    <ul>
+        {% for course in courses %}
+            <li>{{ course.title }} - {{ course.instructor }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
