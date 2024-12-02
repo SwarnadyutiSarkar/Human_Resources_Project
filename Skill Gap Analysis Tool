@@ -1,0 +1,253 @@
+# app.py (Main Flask Application)
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import or_
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///skill_gap_analysis.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Database Models
+class Skill(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+
+class Employee(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    skills = db.relationship('Skill', secondary='employee_skills')
+
+class EmployeeSkills(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'))
+    skill_id = db.Column(db.Integer, db.ForeignKey('skill.id'))
+
+class Role(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    skills_required = db.relationship('Skill', secondary='role_skills')
+
+class RoleSkills(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
+    skill_id = db.Column(db.Integer, db.ForeignKey('skill.id'))
+
+# Routes and Views
+@app.route('/')
+def index():
+    roles = Role.query.all()
+    return render_template('index.html', roles=roles)
+
+@app.route('/add_employee', methods=['GET', 'POST'])
+def add_employee():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        new_employee = Employee(name=name, email=email)
+        db.session.add(new_employee)
+        db.session.commit()
+        flash('Employee added successfully!', 'success')
+        return redirect(url_for('index'))
+    return render_template('add_employee.html')
+
+@app.route('/employee_skills/<int:employee_id>', methods=['GET', 'POST'])
+def employee_skills(employee_id):
+    employee = Employee.query.get(employee_id)
+    skills = Skill.query.all()
+    if request.method == 'POST':
+        selected_skills = request.form.getlist('skills')
+        employee_skills = [EmployeeSkills(employee_id=employee.id, skill_id=skill_id) for skill_id in selected_skills]
+        db.session.add_all(employee_skills)
+        db.session.commit()
+        flash('Skills updated successfully!', 'success')
+        return redirect(url_for('index'))
+    return render_template('employee_skills.html', employee=employee, skills=skills)
+
+@app.route('/role_skills/<int:role_id>', methods=['GET', 'POST'])
+def role_skills(role_id):
+    role = Role.query.get(role_id)
+    skills = Skill.query.all()
+    if request.method == 'POST':
+        selected_skills = request.form.getlist('skills')
+        role_skills = [RoleSkills(role_id=role.id, skill_id=skill_id) for skill_id in selected_skills]
+        db.session.add_all(role_skills)
+        db.session.commit()
+        flash('Role skills updated successfully!', 'success')
+        return redirect(url_for('index'))
+    return render_template('role_skills.html', role=role, skills=skills)
+
+@app.route('/skill_gap_analysis', methods=['GET', 'POST'])
+def skill_gap_analysis():
+    if request.method == 'POST':
+        employee_id = request.form['employee_id']
+        role_id = request.form['role_id']
+        employee = Employee.query.get(employee_id)
+        role = Role.query.get(role_id)
+
+        employee_skills = [es.skill_id for es in employee.skills]
+        role_skills = [rs.skill_id for rs in role.skills_required]
+
+        missing_skills = list(set(role_skills) - set(employee_skills))
+        missing_skill_names = [Skill.query.get(skill_id).name for skill_id in missing_skills]
+
+        return render_template('skill_gap_result.html', employee=employee, role=role, missing_skills=missing_skill_names)
+    
+    employees = Employee.query.all()
+    roles = Role.query.all()
+    return render_template('skill_gap_analysis.html', employees=employees, roles=roles)
+
+# Run the application
+if __name__ == '__main__':
+    db.create_all()
+    app.run(debug=True)
+---------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Skill Gap Analysis</title>
+</head>
+<body>
+    <h2>Welcome to the Skill Gap Analysis Tool</h2>
+    <h3>Available Roles</h3>
+    <ul>
+        {% for role in roles %}
+            <li><a href="{{ url_for('role_skills', role_id=role.id) }}">{{ role.name }}</a></li>
+        {% endfor %}
+    </ul>
+    <a href="{{ url_for('add_employee') }}">Add New Employee</a>
+</body>
+</html>
+------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Employee</title>
+</head>
+<body>
+    <h2>Add New Employee</h2>
+    <form method="POST">
+        <input type="text" name="name" placeholder="Employee Name" required>
+        <input type="email" name="email" placeholder="Employee Email" required>
+        <button type="submit">Add Employee</button>
+    </form>
+    <a href="{{ url_for('index') }}">Back to Dashboard</a>
+</body>
+</html>
+
+-------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Assign Skills to {{ employee.name }}</title>
+</head>
+<body>
+    <h2>Assign Skills to {{ employee.name }}</h2>
+    <form method="POST">
+        <ul>
+            {% for skill in skills %}
+                <li><input type="checkbox" name="skills" value="{{ skill.id }}"> {{ skill.name }}</li>
+            {% endfor %}
+        </ul>
+        <button type="submit">Update Skills</button>
+    </form>
+    <a href="{{ url_for('index') }}">Back to Dashboard</a>
+</body>
+</html>
+------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Assign Skills to Role</title>
+</head>
+<body>
+    <h2>Assign Skills to {{ role.name }}</h2>
+    <form method="POST">
+        <ul>
+            {% for skill in skills %}
+                <li><input type="checkbox" name="skills" value="{{ skill.id }}"> {{ skill.name }}</li>
+            {% endfor %}
+        </ul>
+        <button type="submit">Update Role Skills</button>
+    </form>
+    <a href="{{ url_for('index') }}">Back to Dashboard</a>
+</body>
+</html>
+-----------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Assign Skills to Role</title>
+</head>
+<body>
+    <h2>Assign Skills to {{ role.name }}</h2>
+    <form method="POST">
+        <ul>
+            {% for skill in skills %}
+                <li><input type="checkbox" name="skills" value="{{ skill.id }}"> {{ skill.name }}</li>
+            {% endfor %}
+        </ul>
+        <button type="submit">Update Role Skills</button>
+    </form>
+    <a href="{{ url_for('index') }}">Back to Dashboard</a>
+</body>
+</html>
+----------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Skill Gap Analysis</title>
+</head>
+<body>
+    <h2>Skill Gap Analysis</h2>
+    <form method="POST">
+        <label for="employee_id">Select Employee</label>
+        <select name="employee_id">
+            {% for employee in employees %}
+                <option value="{{ employee.id }}">{{ employee.name }}</option>
+            {% endfor %}
+        </select>
+        <br>
+        <label for="role_id">Select Role</label>
+        <select name="role_id">
+            {% for role in roles %}
+                <option value="{{ role.id }}">{{ role.name }}</option>
+            {% endfor %}
+        </select>
+        <br>
+        <button type="submit">Analyze Skill Gap</button>
+    </form>
+    <a href="{{ url_for('index') }}">Back to Dashboard</a>
+</body>
+</html>
+---------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Skill Gap Analysis Result</title>
+</head>
+<body>
+    <h2>Skill Gap Analysis for {{ employee.name }} in Role {{ role.name }}</h2>
+    {% if missing_skills %}
+        <h3>Missing Skills:</h3>
+        <ul>
+            {% for skill in missing_skills %}
+                <li>{{ skill }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No skill gaps detected. The employee is fully equipped for this role!</p>
+    {% endif %}
+    <a href="{{ url_for('index') }}">Back to Dashboard</a>
+</body>
+</html>
+-------------------------------
