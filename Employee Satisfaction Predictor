@@ -1,0 +1,64 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.preprocessing import StandardScaler
+
+# Sample Data: Assuming employee satisfaction is rated from 1 (Low) to 5 (High)
+data = {
+    'Work Environment': [4, 3, 5, 2, 4, 3, 5, 2, 3, 5],
+    'Management Relationship': [5, 4, 5, 2, 4, 3, 5, 1, 4, 5],
+    'Compensation Satisfaction': [4, 3, 5, 2, 4, 3, 5, 2, 3, 5],
+    'Career Growth Opportunities': [5, 3, 4, 2, 5, 3, 4, 2, 4, 5],
+    'Work-life Balance': [4, 3, 5, 2, 4, 3, 5, 2, 3, 5],
+    'Job Stress Level': [2, 3, 1, 5, 3, 4, 1, 5, 3, 1],
+    'Employee Satisfaction': [1, 2, 5, 1, 3, 2, 5, 1, 2, 5]  # Target: 1=Low, 2=Medium, 3=High
+}
+
+# Create a DataFrame
+df = pd.DataFrame(data)
+
+# Features (independent variables)
+X = df.drop('Employee Satisfaction', axis=1)
+
+# Target (dependent variable)
+y = df['Employee Satisfaction']
+
+# Splitting the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Standardizing the data (scaling features)
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Train a Random Forest Classifier
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train_scaled, y_train)
+
+# Predict on test data
+y_pred = model.predict(X_test_scaled)
+
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Model Accuracy: {accuracy * 100:.2f}%")
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
+# Predict satisfaction for a new employee
+new_employee_data = {
+    'Work Environment': [4],
+    'Management Relationship': [5],
+    'Compensation Satisfaction': [3],
+    'Career Growth Opportunities': [4],
+    'Work-life Balance': [4],
+    'Job Stress Level': [2]
+}
+
+# Convert to DataFrame and scale
+new_employee_df = pd.DataFrame(new_employee_data)
+new_employee_scaled = scaler.transform(new_employee_df)
+
+# Predict satisfaction level for new employee
+predicted_satisfaction = model.predict(new_employee_scaled)
+print(f"\nPredicted Employee Satisfaction for new employee: {predicted_satisfaction[0]}")
