@@ -1,0 +1,44 @@
+import random
+
+# A simple dictionary of HR questions and corresponding answers
+hr_faq = {
+    "What are the office working hours?": "Our office working hours are Monday to Friday, 9 AM to 6 PM.",
+    "What is the company holiday policy?": "The company provides 10 paid holidays per year.",
+    "How do I apply for leave?": "You can apply for leave through the HR portal or by sending an email to hr@company.com.",
+    "How do I request reimbursement?": "To request reimbursement, please submit the expense form on the HR portal.",
+    "What is the dress code?": "The dress code is business casual, but you can wear more formal attire for client meetings.",
+    "What benefits does the company provide?": "We offer health insurance, 401(k) matching, and paid time off (PTO).",
+    "What is the process for promotions?": "Promotions are based on performance reviews conducted twice a year. HR will notify employees of eligibility.",
+    "How do I update my personal information?": "You can update your personal information through the employee portal under 'Profile Settings'.",
+    "Where is the company located?": "Our company is located at 123 Business Rd, Cityville.",
+    "How do I contact HR?": "You can reach HR at hr@company.com or visit our office during working hours."
+}
+
+# Function to get a response based on the user's input
+def get_hr_answer(question):
+    question = question.strip().lower()
+    
+    for key in hr_faq:
+        if key.lower() in question:
+            return hr_faq[key]
+    
+    return "Sorry, I don't have an answer to that question. Please contact HR for more details."
+
+# Simple function to interact with the chatbot
+def hr_chatbot():
+    print("Hello! I am the HR chatbot. How can I assist you today?")
+    print("Type 'exit' to end the conversation.")
+    
+    while True:
+        user_input = input("You: ")
+        
+        if user_input.lower() == 'exit':
+            print("Goodbye! Have a great day!")
+            break
+        
+        response = get_hr_answer(user_input)
+        print("HR Chatbot:", response)
+
+# Run the chatbot
+if __name__ == "__main__":
+    hr_chatbot()
