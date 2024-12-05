@@ -1,0 +1,67 @@
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+from dash.dependencies import Input, Output
+import pandas as pd
+import plotly.express as px
+
+# Sample data (Replace this with actual UN data or load from a CSV)
+data = {
+    'Country': ['USA', 'Canada', 'India', 'Brazil', 'UK'],
+    'GDP (in Billion $)': [21100, 1800, 2900, 2200, 2800],
+    'Life Expectancy (years)': [79, 82, 69, 75, 81],
+    'Population (millions)': [331, 38, 1380, 213, 67],
+    'Unemployment Rate (%)': [4.4, 5.8, 6.1, 11.9, 4.8],
+}
+
+# Create DataFrame
+df = pd.DataFrame(data)
+
+# Initialize the Dash app
+app = dash.Dash(__name__)
+
+# Define the layout of the app
+app.layout = html.Div(children=[
+    html.H1('UN Data Visualization Tool'),
+    
+    # Dropdown to select the metric for visualization
+    html.Label('Select Metric to Visualize:'),
+    dcc.Dropdown(
+        id='metric-dropdown',
+        options=[
+            {'label': 'GDP (in Billion $)', 'value': 'GDP (in Billion $)'},
+            {'label': 'Life Expectancy (years)', 'value': 'Life Expectancy (years)'},
+            {'label': 'Population (millions)', 'value': 'Population (millions)'},
+            {'label': 'Unemployment Rate (%)', 'value': 'Unemployment Rate (%)'},
+        ],
+        value='GDP (in Billion $)',  # default value
+    ),
+    
+    # Graph to display the selected metric
+    dcc.Graph(id='metric-graph'),
+    
+    # Optional: Display data table
+    html.H3('Raw Data:'),
+    html.Div([
+        html.Pre(id='data-table')
+    ])
+])
+
+# Define callback to update the graph based on dropdown selection
+@app.callback(
+    [Output('metric-graph', 'figure'),
+     Output('data-table', 'children')],
+    [Input('metric-dropdown', 'value')]
+)
+def update_graph(selected_metric):
+    # Create a bar plot based on the selected metric
+    fig = px.bar(df, x='Country', y=selected_metric, title=f'{selected_metric} by Country')
+    
+    # Display raw data in a readable format
+    table = df.to_string(index=False)
+    
+    return fig, table
+
+# Run the app
+if __name__ == '__main__':
+    app.run_server(debug=True)
