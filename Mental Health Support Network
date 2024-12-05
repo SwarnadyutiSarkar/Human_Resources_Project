@@ -1,0 +1,51 @@
+import random
+
+# List of mental health resources
+mental_health_resources = {
+    'Counseling': ['Therapists Near You', 'Online Therapy Platforms', 'University Counseling Services'],
+    'Crisis Support': ['National Suicide Prevention Lifeline', 'Crisis Text Line', 'Emergency Hotlines'],
+    'Self-Help': ['Mental Health Apps', 'Meditation Platforms', 'Books on Mental Health'],
+    'Support Groups': ['Local Support Groups', 'Online Forums', 'Peer Support Programs'],
+}
+
+# Display available categories of support
+def display_categories():
+    print("Available categories for mental health support:")
+    for index, category in enumerate(mental_health_resources.keys(), 1):
+        print(f"{index}. {category}")
+    print("\n")
+
+# Suggest random resources from the selected category
+def suggest_resources(category):
+    resources = mental_health_resources.get(category, [])
+    if resources:
+        return random.choice(resources)
+    return "No resources available for this category."
+
+# Main function to run the Mental Health Support Network
+def mental_health_support_network():
+    print("Welcome to the Mental Health Support Network!\n")
+    
+    while True:
+        display_categories()
+        
+        try:
+            choice = int(input("Please select a category by entering its number (1-4), or enter 0 to exit: "))
+            if choice == 0:
+                print("Thank you for using the Mental Health Support Network. Take care!")
+                break
+            
+            categories = list(mental_health_resources.keys())
+            if 1 <= choice <= 4:
+                selected_category = categories[choice - 1]
+                print(f"\nYou selected: {selected_category}")
+                print("Here is a suggested resource: " + suggest_resources(selected_category) + "\n")
+            else:
+                print("Invalid selection. Please enter a number between 1 and 4.\n")
+        
+        except ValueError:
+            print("Invalid input. Please enter a number.\n")
+
+# Run the program
+if __name__ == "__main__":
+    mental_health_support_network()
