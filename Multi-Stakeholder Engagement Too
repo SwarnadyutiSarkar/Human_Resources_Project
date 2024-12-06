@@ -1,0 +1,58 @@
+class Stakeholder:
+    def __init__(self, name, role):
+        self.name = name
+        self.role = role
+        self.feedback = []
+
+    def provide_feedback(self, feedback):
+        self.feedback.append(feedback)
+
+    def view_feedback(self):
+        return "\n".join(self.feedback)
+
+
+class ProjectManager:
+    def __init__(self, project_name):
+        self.project_name = project_name
+        self.stakeholders = []
+
+    def add_stakeholder(self, stakeholder):
+        self.stakeholders.append(stakeholder)
+
+    def view_all_feedback(self):
+        print(f"\nFeedback Summary for {self.project_name}:")
+        for stakeholder in self.stakeholders:
+            print(f"\nStakeholder: {stakeholder.name} ({stakeholder.role})")
+            if stakeholder.feedback:
+                print("Feedback Provided:")
+                print(stakeholder.view_feedback())
+            else:
+                print("No feedback provided yet.")
+
+
+def main():
+    # Initialize Project Manager
+    project_name = input("Enter the project name: ")
+    project_manager = ProjectManager(project_name)
+
+    # Add Stakeholders
+    while True:
+        name = input("Enter stakeholder name (or 'done' to finish): ")
+        if name.lower() == 'done':
+            break
+        role = input(f"Enter role for stakeholder {name}: ")
+        stakeholder = Stakeholder(name, role)
+        project_manager.add_stakeholder(stakeholder)
+
+    # Collect Feedback from Stakeholders
+    for stakeholder in project_manager.stakeholders:
+        print(f"\nCollecting feedback from {stakeholder.name} ({stakeholder.role}):")
+        feedback = input(f"Enter feedback from {stakeholder.name}: ")
+        stakeholder.provide_feedback(feedback)
+
+    # View all Feedback
+    project_manager.view_all_feedback()
+
+
+if __name__ == "__main__":
+    main()
