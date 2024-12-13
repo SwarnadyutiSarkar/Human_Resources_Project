@@ -1,0 +1,124 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract EmployeeRecords {
+    
+    // Structure to hold employee data
+    struct Employee {
+        string name;
+        string jobTitle;
+        uint256 joiningDate;
+        address employeeAddress;
+    }
+
+    // Mapping of employee ID to Employee structure
+    mapping(uint256 => Employee) public employees;
+
+    // Only authorized addresses (HR personnel) can add/modify records
+    address public admin;
+
+    // Event to log employee record updates
+    event EmployeeRecordUpdated(uint256 employeeId, string name, string jobTitle, uint256 joiningDate);
+
+    // Modifier to restrict access to admin (HR personnel)
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Only admin can perform this operation");
+        _;
+    }
+
+    constructor() {
+        admin = msg.sender; // The address deploying the contract is the admin
+    }
+
+    // Function to add or update an employee record
+    function addOrUpdateEmployee(uint256 employeeId, string memory name, string memory jobTitle, uint256 joiningDate) public onlyAdmin {
+        Employee memory newEmployee = Employee({
+            name: name,
+            jobTitle: jobTitle,
+            joiningDate: joiningDate,
+            employeeAddress: msg.sender
+        });
+
+        employees[employeeId] = newEmployee;
+        emit EmployeeRecordUpdated(employeeId, name, jobTitle, joiningDate);
+    }
+
+    // Function to get an employee's details by ID
+    function getEmployee(uint256 employeeId) public view returns (string memory name, string memory jobTitle, uint256 joiningDate, address employeeAddress) {
+        Employee memory emp = employees[employeeId];
+        return (emp.name, emp.jobTitle, emp.joiningDate, emp.employeeAddress);
+    }
+}
+-------------------------------------------------------------------------------
+from web3 import Web3
+from web3.middleware import geth_poa_middleware
+import json
+from datetime import datetime
+
+# Connect to Ethereum Test Network (Rinkeby or Goerli)
+infura_url = "https://goerli.infura.io/v3/YOUR_INFURA_PROJECT_ID"  # Replace with your Infura endpoint
+web3 = Web3(Web3.HTTPProvider(infura_url))
+
+# Enable POA middleware for Goerli or other testnets
+web3.middleware_stack.inject(geth_poa_middleware, layer=0)
+
+# Ensure connection to Ethereum node
+if not web3.isConnected():
+    print("Failed to connect to Ethereum network.")
+    exit()
+
+# Your Ethereum account (admin/HR personnel)
+private_key = "YOUR_PRIVATE_KEY"  # Replace with your private key
+account = web3.eth.account.privateKeyToAccount(private_key)
+account_address = account.address
+
+# Smart Contract ABI and Address (replace with your deployed contract's details)
+contract_address = "YOUR_CONTRACT_ADDRESS"  # Replace with your deployed contract address
+contract_abi = json.loads('[YOUR_CONTRACT_ABI]')  # Replace with ABI from Remix or your deployment
+
+# Interact with the contract
+contract = web3.eth.contract(address=contract_address, abi=contract_abi)
+
+# Function to add or update an employee record
+def add_or_update_employee(employee_id, name, job_title, joining_date):
+    tx = contract.functions.addOrUpdateEmployee(employee_id, name, job_title, joining_date).buildTransaction({
+        'chainId': 5,  # Goerli network ID; for Rinkeby, use 4
+        'gas': 2000000,
+        'gasPrice': web3.toWei('20', 'gwei'),
+        'nonce': web3.eth.getTransactionCount(account_address),
+    })
+
+    # Sign the transaction
+    signed_tx = web3.eth.account.signTransaction(tx, private_key)
+    
+    # Send the transaction
+    tx_hash = web3.eth.sendRawTransaction(signed_tx.rawTransaction)
+    print(f"Transaction hash: {web3.toHex(tx_hash)}")
+
+    # Wait for the transaction to be mined
+    tx_receipt = web3.eth.waitForTransactionReceipt(tx_hash)
+    if tx_receipt['status'] == 1:
+        print("Employee record updated successfully!")
+    else:
+        print("Failed to update employee record.")
+
+# Function to get an employee's record
+def get_employee(employee_id):
+    employee = contract.functions.getEmployee(employee_id).call()
+    print(f"Employee {employee_id} Info:")
+    print(f"Name: {employee[0]}")
+    print(f"Job Title: {employee[1]}")
+    print(f"Joining Date: {datetime.utcfromtimestamp(employee[2]).strftime('%Y-%m-%d')}")
+    print(f"Address: {employee[3]}")
+
+# Example Usage: Add or Update Employee Record
+employee_id = 12345
+name = "John Doe"
+job_title = "Software Engineer"
+joining_date = int(datetime(2020, 6, 1).timestamp())  # Joining date as UNIX timestamp
+
+# Add or Update the employee record
+add_or_update_employee(employee_id, name, job_title, joining_date)
+
+# Get the employee's record
+get_employee(employee_id)

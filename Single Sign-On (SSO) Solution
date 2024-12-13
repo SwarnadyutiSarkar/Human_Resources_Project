@@ -1,0 +1,77 @@
+# Single Sign-On (SSO) Solution using OAuth 2.0 (Python Example)
+
+import requests
+from flask import Flask, redirect, request, session, url_for
+from oauthlib.oauth2 import WebApplicationClient
+
+# Constants - Identity Provider (IdP) URLs and configurations
+CLIENT_ID = 'your-client-id'  # Your OAuth client ID from IdP
+CLIENT_SECRET = 'your-client-secret'  # Your OAuth client secret
+AUTHORIZATION_BASE_URL = 'https://your-idp.com/oauth/authorize'
+TOKEN_URL = 'https://your-idp.com/oauth/token'
+USER_INFO_URL = 'https://your-idp.com/oauth/userinfo'
+REDIRECT_URI = 'http://localhost:5000/callback'  # Your app's callback URL
+
+# Flask app setup
+app = Flask(__name__)
+app.secret_key = 'your-secret-key'  # Flask session secret key
+
+# OAuth 2.0 client setup
+client = WebApplicationClient(CLIENT_ID)
+
+# Helper function to fetch the user info from the IdP
+def get_user_info(oauth_token):
+    response = requests.get(USER_INFO_URL, headers={'Authorization': f'Bearer {oauth_token}'})
+    return response.json()
+
+# Route to start the SSO login flow
+@app.route('/login')
+def login():
+    authorization_url, state = client.prepare_request_uri(AUTHORIZATION_BASE_URL, redirect_uri=REDIRECT_URI)
+    session['oauth_state'] = state
+    return redirect(authorization_url)
+
+# Callback route to handle the redirect from the IdP after user authentication
+@app.route('/callback')
+def callback():
+    # Get authorization code from the callback URL
+    code = request.args.get('code')
+    state = request.args.get('state')
+
+    # Verify the state parameter to prevent CSRF attacks
+    if state != session['oauth_state']:
+        return 'State mismatch error', 400
+
+    # Get access token from IdP
+    token_url, headers, body = client.prepare_token_request(TOKEN_URL, authorization_response=request.url, client_secret=CLIENT_SECRET)
+    token_response = requests.post(token_url, headers=headers, data=body)
+    client.parse_request_body_response(token_response.text)
+
+    # Get user info using the OAuth token
+    oauth_token = client.token['access_token']
+    user_info = get_user_info(oauth_token)
+
+    # Store user info in the session
+    session['user_info'] = user_info
+
+    # Redirect to the HR system dashboard
+    return redirect(url_for('dashboard'))
+
+# Route to display the user dashboard (Access to HR Systems)
+@app.route('/dashboard')
+def dashboard():
+    if 'user_info' not in session:
+        return redirect(url_for('login'))
+
+    user_info = session['user_info']
+    return f"Welcome, {user_info['name']}! You have successfully logged in to the HR systems."
+
+# Route to logout (clear session)
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+# Run the Flask app
+if __name__ == '__main__':
+    app.run(debug=True)
