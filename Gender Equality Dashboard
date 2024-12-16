@@ -1,0 +1,165 @@
+from flask import Flask, render_template_string, jsonify
+import random
+
+app = Flask(__name__)
+
+# Sample data representing gender equality indicators across countries
+# In a real scenario, this would come from a database or an API
+countries_data = [
+    {"country": "Sweden", "gender_gap_index": 0.82, "education_gap": 0.94, "economic_participation": 0.77, "health_gap": 0.95},
+    {"country": "Finland", "gender_gap_index": 0.80, "education_gap": 0.92, "economic_participation": 0.76, "health_gap": 0.96},
+    {"country": "Norway", "gender_gap_index": 0.81, "education_gap": 0.93, "economic_participation": 0.78, "health_gap": 0.94},
+    {"country": "United States", "gender_gap_index": 0.74, "education_gap": 0.89, "economic_participation": 0.71, "health_gap": 0.94},
+    {"country": "India", "gender_gap_index": 0.66, "education_gap": 0.87, "economic_participation": 0.60, "health_gap": 0.91},
+    {"country": "Saudi Arabia", "gender_gap_index": 0.59, "education_gap": 0.84, "economic_participation": 0.53, "health_gap": 0.93},
+    {"country": "Canada", "gender_gap_index": 0.79, "education_gap": 0.91, "economic_participation": 0.75, "health_gap": 0.96},
+    {"country": "Brazil", "gender_gap_index": 0.72, "education_gap": 0.88, "economic_participation": 0.70, "health_gap": 0.92},
+]
+
+# HTML, CSS, JavaScript for dashboard and chart rendering
+html_content = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gender Equality Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        main {
+            padding: 20px;
+        }
+
+        .dashboard {
+            margin-top: 40px;
+        }
+
+        .chart-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Gender Equality Dashboard</h1>
+    </header>
+
+    <main>
+        <section class="dashboard">
+            <h2>Gender Equality Indicators by Country</h2>
+
+            <div class="chart-container">
+                <canvas id="genderGapChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="educationGapChart"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Gender Equality Dashboard</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Extract country names and indicators from the backend
+        const countriesData = {{ countries_data | tojson }};
+        
+        const countries = countriesData.map(item => item.country);
+        const genderGapIndex = countriesData.map(item => item.gender_gap_index);
+        const educationGap = countriesData.map(item => item.education_gap);
+        const economicParticipation = countriesData.map(item => item.economic_participation);
+        const healthGap = countriesData.map(item => item.health_gap);
+
+        // Gender Gap Chart
+        const ctx1 = document.getElementById('genderGapChart').getContext('2d');
+        const genderGapChart = new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: countries,
+                datasets: [{
+                    label: 'Gender Gap Index',
+                    data: genderGapIndex,
+                    backgroundColor: '#4CAF50',
+                    borderColor: '#388E3C',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 0.05
+                        }
+                    }
+                }
+            }
+        });
+
+        // Education Gap Chart
+        const ctx2 = document.getElementById('educationGapChart').getContext('2d');
+        const educationGapChart = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: countries,
+                datasets: [{
+                    label: 'Education Gap Index',
+                    data: educationGap,
+                    backgroundColor: '#FFC107',
+                    borderColor: '#FF9800',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 0.05
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+"""
+
+@app.route('/')
+def home():
+    return render_template_string(html_content, countries_data=countries_data)
+
+if __name__ == '__main__':
+    app.run(debug=True)
