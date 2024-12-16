@@ -1,0 +1,193 @@
+from flask import Flask, render_template_string, jsonify
+import random
+
+app = Flask(__name__)
+
+# Sample data representing water quality indicators across different global locations
+# In a real-world scenario, this data would be fetched from a database or an API.
+water_quality_data = [
+    {"location": "New York, USA", "ph": round(random.uniform(6.5, 8.5), 2), "turbidity": round(random.uniform(0, 10), 2), "temperature": round(random.uniform(15, 30), 2)},
+    {"location": "London, UK", "ph": round(random.uniform(6.5, 8.5), 2), "turbidity": round(random.uniform(0, 10), 2), "temperature": round(random.uniform(15, 30), 2)},
+    {"location": "Tokyo, Japan", "ph": round(random.uniform(6.5, 8.5), 2), "turbidity": round(random.uniform(0, 10), 2), "temperature": round(random.uniform(15, 30), 2)},
+    {"location": "Mumbai, India", "ph": round(random.uniform(6.5, 8.5), 2), "turbidity": round(random.uniform(0, 10), 2), "temperature": round(random.uniform(15, 30), 2)},
+    {"location": "Sydney, Australia", "ph": round(random.uniform(6.5, 8.5), 2), "turbidity": round(random.uniform(0, 10), 2), "temperature": round(random.uniform(15, 30), 2)},
+    {"location": "Cape Town, South Africa", "ph": round(random.uniform(6.5, 8.5), 2), "turbidity": round(random.uniform(0, 10), 2), "temperature": round(random.uniform(15, 30), 2)},
+    {"location": "Rio de Janeiro, Brazil", "ph": round(random.uniform(6.5, 8.5), 2), "turbidity": round(random.uniform(0, 10), 2), "temperature": round(random.uniform(15, 30), 2)},
+]
+
+# HTML, CSS, JavaScript for the water quality dashboard and charts
+html_content = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Quality Monitoring App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        main {
+            padding: 20px;
+        }
+
+        .dashboard {
+            margin-top: 40px;
+        }
+
+        .chart-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Water Quality Monitoring Dashboard</h1>
+    </header>
+
+    <main>
+        <section class="dashboard">
+            <h2>Water Quality Indicators by Location</h2>
+
+            <div class="chart-container">
+                <canvas id="phChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="turbidityChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="temperatureChart"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Water Quality Monitoring App</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Extract location and water quality data from the backend
+        const waterQualityData = {{ water_quality_data | tojson }};
+        
+        const locations = waterQualityData.map(item => item.location);
+        const phLevels = waterQualityData.map(item => item.ph);
+        const turbidityLevels = waterQualityData.map(item => item.turbidity);
+        const temperatures = waterQualityData.map(item => item.temperature);
+
+        // pH Levels Chart
+        const ctx1 = document.getElementById('phChart').getContext('2d');
+        const phChart = new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: locations,
+                datasets: [{
+                    label: 'pH Level',
+                    data: phLevels,
+                    backgroundColor: '#4CAF50',
+                    borderColor: '#388E3C',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 0.5
+                        }
+                    }
+                }
+            }
+        });
+
+        // Turbidity Chart
+        const ctx2 = document.getElementById('turbidityChart').getContext('2d');
+        const turbidityChart = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: locations,
+                datasets: [{
+                    label: 'Turbidity (NTU)',
+                    data: turbidityLevels,
+                    backgroundColor: '#FFC107',
+                    borderColor: '#FF9800',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+
+        // Temperature Chart
+        const ctx3 = document.getElementById('temperatureChart').getContext('2d');
+        const temperatureChart = new Chart(ctx3, {
+            type: 'bar',
+            data: {
+                labels: locations,
+                datasets: [{
+                    label: 'Water Temperature (°C)',
+                    data: temperatures,
+                    backgroundColor: '#2196F3',
+                    borderColor: '#1976D2',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 2
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+"""
+
+@app.route('/')
+def home():
+    return render_template_string(html_content, water_quality_data=water_quality_data)
+
+if __name__ == '__main__':
+    app.run(debug=True)

@@ -1,0 +1,166 @@
+from flask import Flask, render_template_string, jsonify
+
+app = Flask(__name__)
+
+# List of training modules (in-memory for simplicity)
+training_modules = [
+    {"id": 1, "title": "Leadership Skills", "description": "Learn the fundamentals of leadership."},
+    {"id": 2, "title": "Team Building", "description": "Improve team collaboration and communication."},
+    {"id": 3, "title": "Public Speaking", "description": "Master public speaking and communication skills."}
+]
+
+# HTML, CSS, and JavaScript integrated into one file
+html_content = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Youth Leadership Development Program</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        header nav ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        header nav ul li {
+            display: inline;
+            margin: 0 15px;
+        }
+
+        header nav ul li a {
+            color: white;
+            text-decoration: none;
+        }
+
+        main {
+            padding: 20px;
+        }
+
+        .hero {
+            background-color: #009688;
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .courses {
+            margin-top: 40px;
+        }
+
+        .course-list {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+
+        .course-card {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            width: 300px;
+            margin: 20px;
+            text-align: center;
+        }
+
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Youth Leadership Development Program</h1>
+        <nav>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/about">About</a></li>
+            </ul>
+        </nav>
+    </header>
+    
+    <main>
+        <section class="hero">
+            <h2>Empowering the leaders of tomorrow!</h2>
+            <p>Join our online leadership training modules to enhance your skills.</p>
+        </section>
+
+        <section class="courses">
+            <h2>Our Training Modules</h2>
+            <div class="course-list">
+                {% for module in modules %}
+                    <div class="course-card">
+                        <h3>{{ module.title }}</h3>
+                        <p>{{ module.description }}</p>
+                        <button onclick="enroll({{ module.id }})">Enroll Now</button>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Youth Leadership Development Program</p>
+    </footer>
+
+    <script>
+        function enroll(moduleId) {
+            fetch('/enroll/' + moduleId, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                });
+        }
+    </script>
+</body>
+</html>
+"""
+
+# Home route
+@app.route('/')
+def home():
+    return render_template_string(html_content, modules=training_modules)
+
+# About page
+@app.route('/about')
+def about():
+    about_content = """
+    <html>
+    <head><title>About - Youth Leadership Development Program</title></head>
+    <body>
+        <h1>About Us</h1>
+        <p>Our mission is to equip young leaders with the skills and confidence needed to excel in leadership roles across various fields. Our online platform offers engaging modules in leadership, communication, and teamwork.</p>
+        <a href="/">Back to Home</a>
+    </body>
+    </html>
+    """
+    return about_content
+
+# Course enrollment route (mocked for simplicity)
+@app.route('/enroll/<int:module_id>', methods=['POST'])
+def enroll(module_id):
+    return jsonify({"message": f"Successfully enrolled in module {module_id}."})
+
+if __name__ == '__main__':
+    app.run(debug=True)
