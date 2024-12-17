@@ -1,0 +1,138 @@
+import datetime
+import json
+import os
+
+class IncidentReport:
+    def __init__(self, employee_name, incident_type, description):
+        self.report_id = self.generate_report_id()
+        self.employee_name = employee_name
+        self.incident_type = incident_type
+        self.description = description
+        self.date_reported = datetime.date.today()
+        self.status = "Pending"
+    
+    def generate_report_id(self):
+        """Generate a unique report ID based on current timestamp."""
+        return f"INC{int(datetime.datetime.now().timestamp())}"
+    
+    def update_status(self, status):
+        """Update the status of the report."""
+        self.status = status
+    
+    def to_dict(self):
+        """Convert the incident report to a dictionary for storage."""
+        return {
+            "report_id": self.report_id,
+            "employee_name": self.employee_name,
+            "incident_type": self.incident_type,
+            "description": self.description,
+            "date_reported": str(self.date_reported),
+            "status": self.status
+        }
+
+class IncidentReportingSystem:
+    def __init__(self):
+        self.report_file = "incident_reports.json"
+        self.reports = self.load_reports()
+    
+    def load_reports(self):
+        """Load existing reports from the JSON file."""
+        if os.path.exists(self.report_file):
+            with open(self.report_file, "r") as file:
+                return json.load(file)
+        return []
+    
+    def save_reports(self):
+        """Save reports to the JSON file."""
+        with open(self.report_file, "w") as file:
+            json.dump(self.reports, file, indent=4)
+    
+    def submit_report(self, employee_name, incident_type, description):
+        """Submit a new incident report."""
+        report = IncidentReport(employee_name, incident_type, description)
+        self.reports.append(report.to_dict())
+        self.save_reports()
+        print(f"Incident report submitted successfully. Report ID: {report.report_id}")
+    
+    def view_reports(self):
+        """View all reports."""
+        if not self.reports:
+            print("No reports found.")
+        else:
+            print("Incident Reports:")
+            for report in self.reports:
+                print(f"ID: {report['report_id']}, Type: {report['incident_type']}, Status: {report['status']}, Date: {report['date_reported']}")
+    
+    def update_report_status(self, report_id, status):
+        """Update the status of an existing report."""
+        for report in self.reports:
+            if report['report_id'] == report_id:
+                report['status'] = status
+                self.save_reports()
+                print(f"Report {report_id} status updated to {status}.")
+                return
+        print(f"Report with ID {report_id} not found.")
+    
+    def search_reports(self, incident_type=None, status=None):
+        """Search reports by incident type or status."""
+        found_reports = [
+            report for report in self.reports
+            if (incident_type is None or report['incident_type'] == incident_type) and
+               (status is None or report['status'] == status)
+        ]
+        if not found_reports:
+            print("No reports found matching the criteria.")
+        else:
+            for report in found_reports:
+                print(f"ID: {report['report_id']}, Type: {report['incident_type']}, Status: {report['status']}, Date: {report['date_reported']}")
+
+# Example usage of the system
+
+def main():
+    system = IncidentReportingSystem()
+    
+    # Menu for interacting with the system
+    while True:
+        print("\n-- Incident Reporting System --")
+        print("1. Submit a new incident report (anonymously)")
+        print("2. View all incident reports")
+        print("3. Search reports")
+        print("4. Update report status (Admin only)")
+        print("5. Exit")
+        
+        choice = input("Enter your choice: ")
+        
+        if choice == '1':
+            print("You can submit a report anonymously.")
+            employee_name = input("Enter your name (or leave empty for anonymous): ")
+            incident_type = input("Enter incident type (e.g., harassment, safety, policy violation): ")
+            description = input("Describe the incident: ")
+            system.submit_report(employee_name if employee_name else "Anonymous", incident_type, description)
+        
+        elif choice == '2':
+            system.view_reports()
+        
+        elif choice == '3':
+            print("Search by incident type or status.")
+            incident_type = input("Enter incident type (leave empty to skip): ")
+            status = input("Enter report status (leave empty to skip): ")
+            system.search_reports(incident_type if incident_type else None, status if status else None)
+        
+        elif choice == '4':
+            print("This option is for admin users only.")
+            admin_password = input("Enter admin password: ")
+            if admin_password == "admin123":  # Placeholder for admin authentication
+                report_id = input("Enter the report ID to update: ")
+                status = input("Enter new status (e.g., resolved, under investigation): ")
+                system.update_report_status(report_id, status)
+            else:
+                print("Incorrect admin password.")
+        
+        elif choice == '5':
+            print("Exiting the system...")
+            break
+        else:
+            print("Invalid choice, please try again.")
+
+if __name__ == "__main__":
+    main()

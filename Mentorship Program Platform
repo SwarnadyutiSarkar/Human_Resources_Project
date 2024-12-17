@@ -1,0 +1,182 @@
+import datetime
+import json
+import os
+
+class Mentor:
+    def __init__(self, mentor_id, name, expertise):
+        self.mentor_id = mentor_id
+        self.name = name
+        self.expertise = expertise
+        self.mentees = []
+
+    def add_mentee(self, mentee):
+        self.mentees.append(mentee)
+        print(f"Mentee {mentee.name} added to mentor {self.name}.")
+
+    def view_mentees(self):
+        print(f"Mentor {self.name}'s Mentees:")
+        for mentee in self.mentees:
+            print(f"- {mentee.name} (ID: {mentee.mentee_id})")
+
+class Mentee:
+    def __init__(self, mentee_id, name, goals):
+        self.mentee_id = mentee_id
+        self.name = name
+        self.goals = goals
+        self.mentor = None
+        self.progress = []
+
+    def set_mentor(self, mentor):
+        self.mentor = mentor
+        mentor.add_mentee(self)
+        print(f"Mentee {self.name} has been paired with Mentor {mentor.name}.")
+
+    def add_progress(self, date, description):
+        self.progress.append({"date": date, "description": description})
+        print(f"Progress for {self.name} on {date}: {description}")
+
+    def view_progress(self):
+        print(f"Progress for Mentee {self.name}:")
+        for entry in self.progress:
+            print(f"- {entry['date']}: {entry['description']}")
+
+class MentorshipProgram:
+    def __init__(self):
+        self.mentors = {}
+        self.mentees = {}
+        self.pairings = {}
+        self.feedback = {}
+        self.program_file = "mentorship_program.json"
+        self.load_data()
+
+    def load_data(self):
+        """Load mentors, mentees, and feedback from a file."""
+        if os.path.exists(self.program_file):
+            with open(self.program_file, "r") as file:
+                data = json.load(file)
+                self.mentors = {m['mentor_id']: Mentor(m['mentor_id'], m['name'], m['expertise']) for m in data.get('mentors', [])}
+                self.mentees = {m['mentee_id']: Mentee(m['mentee_id'], m['name'], m['goals']) for m in data.get('mentees', [])}
+                self.pairings = data.get('pairings', {})
+                self.feedback = data.get('feedback', {})
+
+    def save_data(self):
+        """Save the current data to a file."""
+        data = {
+            "mentors": [mentor.__dict__ for mentor in self.mentors.values()],
+            "mentees": [mentee.__dict__ for mentee in self.mentees.values()],
+            "pairings": self.pairings,
+            "feedback": self.feedback
+        }
+        with open(self.program_file, "w") as file:
+            json.dump(data, file, indent=4)
+
+    def add_mentor(self, mentor_id, name, expertise):
+        """Add a new mentor to the system."""
+        if mentor_id not in self.mentors:
+            mentor = Mentor(mentor_id, name, expertise)
+            self.mentors[mentor_id] = mentor
+            print(f"Mentor {name} added.")
+        else:
+            print("Mentor already exists.")
+
+    def add_mentee(self, mentee_id, name, goals):
+        """Add a new mentee to the system."""
+        if mentee_id not in self.mentees:
+            mentee = Mentee(mentee_id, name, goals)
+            self.mentees[mentee_id] = mentee
+            print(f"Mentee {name} added.")
+        else:
+            print("Mentee already exists.")
+
+    def pair_mentor_and_mentee(self, mentor_id, mentee_id):
+        """Pair a mentor with a mentee."""
+        if mentor_id in self.mentors and mentee_id in self.mentees:
+            mentor = self.mentors[mentor_id]
+            mentee = self.mentees[mentee_id]
+            mentee.set_mentor(mentor)
+            self.pairings[mentor_id] = self.pairings.get(mentor_id, [])
+            self.pairings[mentor_id].append(mentee_id)
+            self.save_data()
+        else:
+            print("Mentor or Mentee not found.")
+
+    def view_mentor_mentees(self, mentor_id):
+        """View the mentees of a particular mentor."""
+        if mentor_id in self.mentors:
+            self.mentors[mentor_id].view_mentees()
+        else:
+            print("Mentor not found.")
+
+    def view_mentee_progress(self, mentee_id):
+        """View the progress of a particular mentee."""
+        if mentee_id in self.mentees:
+            self.mentees[mentee_id].view_progress()
+        else:
+            print("Mentee not found.")
+
+    def provide_feedback(self, mentor_id, mentee_id, feedback):
+        """Provide feedback for a mentee's progress."""
+        if mentor_id in self.mentors and mentee_id in self.mentees:
+            self.feedback[(mentor_id, mentee_id)] = feedback
+            print(f"Feedback provided for Mentee {mentee_id} by Mentor {mentor_id}: {feedback}")
+            self.save_data()
+        else:
+            print("Mentor or Mentee not found.")
+
+# Example usage
+
+def main():
+    program = MentorshipProgram()
+
+    # Menu for interacting with the mentorship program
+    while True:
+        print("\n-- Mentorship Program --")
+        print("1. Add Mentor")
+        print("2. Add Mentee")
+        print("3. Pair Mentor and Mentee")
+        print("4. View Mentor's Mentees")
+        print("5. View Mentee's Progress")
+        print("6. Provide Feedback on Mentee's Progress")
+        print("7. Exit")
+        
+        choice = input("Enter your choice: ")
+        
+        if choice == '1':
+            mentor_id = input("Enter Mentor ID: ")
+            name = input("Enter Mentor Name: ")
+            expertise = input("Enter Mentor Expertise: ")
+            program.add_mentor(mentor_id, name, expertise)
+        
+        elif choice == '2':
+            mentee_id = input("Enter Mentee ID: ")
+            name = input("Enter Mentee Name: ")
+            goals = input("Enter Mentee Goals: ")
+            program.add_mentee(mentee_id, name, goals)
+        
+        elif choice == '3':
+            mentor_id = input("Enter Mentor ID: ")
+            mentee_id = input("Enter Mentee ID: ")
+            program.pair_mentor_and_mentee(mentor_id, mentee_id)
+        
+        elif choice == '4':
+            mentor_id = input("Enter Mentor ID to view their mentees: ")
+            program.view_mentor_mentees(mentor_id)
+        
+        elif choice == '5':
+            mentee_id = input("Enter Mentee ID to view their progress: ")
+            program.view_mentee_progress(mentee_id)
+        
+        elif choice == '6':
+            mentor_id = input("Enter Mentor ID: ")
+            mentee_id = input("Enter Mentee ID: ")
+            feedback = input("Enter feedback for the mentee: ")
+            program.provide_feedback(mentor_id, mentee_id, feedback)
+        
+        elif choice == '7':
+            print("Exiting the program...")
+            break
+        else:
+            print("Invalid choice, please try again.")
+
+if __name__ == "__main__":
+    main()

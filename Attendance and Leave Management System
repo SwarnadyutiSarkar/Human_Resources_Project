@@ -1,0 +1,141 @@
+import datetime
+
+class Employee:
+    def __init__(self, emp_id, name, department):
+        self.emp_id = emp_id
+        self.name = name
+        self.department = department
+        self.attendance = []
+        self.leave_requests = []
+    
+    def mark_attendance(self):
+        today = datetime.date.today()
+        self.attendance.append(today)
+        print(f"Attendance marked for {self.name} on {today}")
+    
+    def request_leave(self, start_date, end_date):
+        leave = LeaveRequest(self, start_date, end_date)
+        self.leave_requests.append(leave)
+        print(f"Leave request submitted by {self.name} from {start_date} to {end_date}")
+    
+    def view_attendance(self):
+        print(f"Attendance records for {self.name}:")
+        for date in self.attendance:
+            print(date)
+
+class LeaveRequest:
+    def __init__(self, employee, start_date, end_date):
+        self.employee = employee
+        self.start_date = start_date
+        self.end_date = end_date
+        self.status = 'Pending'
+
+    def approve(self):
+        self.status = 'Approved'
+        print(f"Leave request from {self.employee.name} ({self.employee.emp_id}) from {self.start_date} to {self.end_date} approved.")
+
+    def reject(self):
+        self.status = 'Rejected'
+        print(f"Leave request from {self.employee.name} ({self.employee.emp_id}) from {self.start_date} to {self.end_date} rejected.")
+
+class Manager:
+    def __init__(self, name):
+        self.name = name
+    
+    def approve_leave(self, leave_request):
+        leave_request.approve()
+
+    def reject_leave(self, leave_request):
+        leave_request.reject()
+
+class AttendanceAndLeaveManagementSystem:
+    def __init__(self):
+        self.employees = {}
+        self.managers = {}
+
+    def add_employee(self, emp_id, name, department):
+        if emp_id not in self.employees:
+            employee = Employee(emp_id, name, department)
+            self.employees[emp_id] = employee
+            print(f"Employee {name} (ID: {emp_id}) added.")
+        else:
+            print("Employee already exists.")
+
+    def add_manager(self, name):
+        manager = Manager(name)
+        self.managers[name] = manager
+        print(f"Manager {name} added.")
+    
+    def mark_employee_attendance(self, emp_id):
+        if emp_id in self.employees:
+            self.employees[emp_id].mark_attendance()
+        else:
+            print("Employee not found.")
+
+    def view_employee_attendance(self, emp_id):
+        if emp_id in self.employees:
+            self.employees[emp_id].view_attendance()
+        else:
+            print("Employee not found.")
+
+    def employee_request_leave(self, emp_id, start_date, end_date):
+        if emp_id in self.employees:
+            self.employees[emp_id].request_leave(start_date, end_date)
+        else:
+            print("Employee not found.")
+    
+    def manager_approve_leave(self, manager_name, emp_id, start_date, end_date):
+        if manager_name in self.managers and emp_id in self.employees:
+            manager = self.managers[manager_name]
+            employee = self.employees[emp_id]
+            leave_request = next((lr for lr in employee.leave_requests if lr.start_date == start_date and lr.end_date == end_date), None)
+            if leave_request:
+                manager.approve_leave(leave_request)
+            else:
+                print("Leave request not found.")
+        else:
+            print("Manager or Employee not found.")
+    
+    def manager_reject_leave(self, manager_name, emp_id, start_date, end_date):
+        if manager_name in self.managers and emp_id in self.employees:
+            manager = self.managers[manager_name]
+            employee = self.employees[emp_id]
+            leave_request = next((lr for lr in employee.leave_requests if lr.start_date == start_date and lr.end_date == end_date), None)
+            if leave_request:
+                manager.reject_leave(leave_request)
+            else:
+                print("Leave request not found.")
+        else:
+            print("Manager or Employee not found.")
+
+# Example usage:
+
+def main():
+    # Initialize system
+    system = AttendanceAndLeaveManagementSystem()
+
+    # Add employees
+    system.add_employee(1, "John Doe", "IT")
+    system.add_employee(2, "Jane Smith", "HR")
+
+    # Add manager
+    system.add_manager("Alice Manager")
+
+    # Mark attendance
+    system.mark_employee_attendance(1)
+    system.mark_employee_attendance(2)
+
+    # View employee attendance
+    system.view_employee_attendance(1)
+
+    # Request leave
+    system.employee_request_leave(1, datetime.date(2024, 12, 20), datetime.date(2024, 12, 22))
+
+    # Manager approves leave
+    system.manager_approve_leave("Alice Manager", 1, datetime.date(2024, 12, 20), datetime.date(2024, 12, 22))
+
+    # View employee attendance after leave request
+    system.view_employee_attendance(1)
+
+if __name__ == "__main__":
+    main()
