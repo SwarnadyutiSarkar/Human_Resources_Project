@@ -1,0 +1,116 @@
+import hashlib
+import json
+import time
+
+class Block:
+    def __init__(self, index, timestamp, data, previous_hash):
+        self.index = index
+        self.timestamp = timestamp
+        self.data = data
+        self.previous_hash = previous_hash
+        self.hash = self.calculate_hash()
+
+    def calculate_hash(self):
+        block_string = json.dumps(self.__dict__, sort_keys=True).encode()
+        return hashlib.sha256(block_string).hexdigest()
+
+class Blockchain:
+    def __init__(self):
+        self.chain = []
+        self.current_data = []
+        self.create_genesis_block()
+
+    def create_genesis_block(self):
+        """Create the first block in the blockchain, the genesis block."""
+        genesis_block = Block(0, time.time(), "Genesis Block", "0")
+        self.chain.append(genesis_block)
+
+    def add_data(self, name, location, size, maintenance_status, rating):
+        """Add a new green space or update an existing one."""
+        data = {
+            'name': name,
+            'location': location,
+            'size': size,  # Size in square meters
+            'maintenance_status': maintenance_status,
+            'rating': rating,
+            'timestamp': time.time()
+        }
+        self.current_data.append(data)
+        return self.last_block.index + 1
+
+    def add_block(self, previous_hash):
+        """Create a new block and add it to the blockchain."""
+        block = Block(len(self.chain), time.time(), self.current_data, previous_hash)
+        self.chain.append(block)
+        self.current_data = []
+
+    def get_last_block(self):
+        """Get the last block in the chain."""
+        return self.chain[-1]
+
+    def is_chain_valid(self):
+        """Check if the blockchain is valid."""
+        for i in range(1, len(self.chain)):
+            current_block = self.chain[i]
+            previous_block = self.chain[i - 1]
+
+            if current_block.hash != current_block.calculate_hash():
+                return False
+            if current_block.previous_hash != previous_block.hash:
+                return False
+        return True
+
+    def display_chain(self):
+        """Display the entire blockchain."""
+        for block in self.chain:
+            print(f"Block #{block.index} | Timestamp: {block.timestamp}")
+            print(f"Data: {json.dumps(block.data, indent=4)}")
+            print(f"Hash: {block.hash}\n")
+
+class UrbanGreenSpacePlatform:
+    def __init__(self):
+        self.blockchain = Blockchain()
+
+    def register_green_space(self, name, location, size, maintenance_status, rating):
+        """Register a new green space."""
+        self.blockchain.add_data(name, location, size, maintenance_status, rating)
+        self.blockchain.add_block(self.blockchain.get_last_block().hash)
+        print(f"Green space '{name}' registered successfully.")
+
+    def update_green_space(self, name, new_maintenance_status, new_rating):
+        """Update the maintenance status or rating of an existing green space."""
+        # In real-world applications, a more sophisticated search method should be used to find the space
+        print(f"Updating Green Space '{name}' with new maintenance status: {new_maintenance_status} and new rating: {new_rating}")
+        self.register_green_space(name, "Existing Location", 1000, new_maintenance_status, new_rating)
+
+    def display_green_spaces(self):
+        """Display all registered green spaces."""
+        self.blockchain.display_chain()
+
+    def verify_integrity(self):
+        """Check if the blockchain is valid."""
+        if self.blockchain.is_chain_valid():
+            print("The blockchain is valid.")
+        else:
+            print("The blockchain has been tampered with!")
+
+def main():
+    # Initialize the UrbanGreenSpacePlatform
+    platform = UrbanGreenSpacePlatform()
+
+    # Registering Green Spaces
+    platform.register_green_space('Central Park', 'New York City, USA', 843000, 'Well-Maintained', 4.8)
+    platform.register_green_space('Hyde Park', 'London, UK', 142000, 'Needs Maintenance', 4.5)
+
+    # Display all registered green spaces
+    print("All Urban Green Spaces:")
+    platform.display_green_spaces()
+
+    # Update Green Space Maintenance and Rating
+    platform.update_green_space('Central Park', 'Needs Maintenance', 4.7)
+
+    # Verify blockchain integrity
+    platform.verify_integrity()
+
+if __name__ == "__main__":
+    main()
