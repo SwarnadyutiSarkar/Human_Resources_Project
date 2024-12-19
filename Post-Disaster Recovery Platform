@@ -1,0 +1,151 @@
+import json
+from datetime import datetime
+
+# Class to represent a Disaster event
+class Disaster:
+    def __init__(self, name, disaster_type, location, start_date, severity_level):
+        self.name = name
+        self.disaster_type = disaster_type
+        self.location = location
+        self.start_date = start_date
+        self.severity_level = severity_level  # E.g., "High", "Medium", "Low"
+        self.recovery_efforts = []
+        self.resources_needed = []
+        self.resources_available = []
+
+    def add_recovery_effort(self, effort):
+        self.recovery_efforts.append(effort)
+
+    def add_resource_needed(self, resource):
+        self.resources_needed.append(resource)
+
+    def add_resource_available(self, resource):
+        self.resources_available.append(resource)
+
+    def __str__(self):
+        return f"Disaster: {self.name}, Type: {self.disaster_type}, Location: {self.location}, Severity: {self.severity_level}"
+
+# Class to represent a Recovery Effort
+class RecoveryEffort:
+    def __init__(self, effort_name, description, start_date, end_date, status):
+        self.effort_name = effort_name
+        self.description = description
+        self.start_date = start_date
+        self.end_date = end_date
+        self.status = status  # E.g., "Ongoing", "Completed", "Pending"
+
+    def __str__(self):
+        return f"Effort: {self.effort_name}, Status: {self.status}, Duration: {self.start_date} to {self.end_date}"
+
+# Class to represent a Resource (e.g., medical supplies, food, personnel)
+class Resource:
+    def __init__(self, resource_name, resource_type, quantity, location):
+        self.resource_name = resource_name
+        self.resource_type = resource_type  # E.g., "Medical", "Food", "Personnel"
+        self.quantity = quantity
+        self.location = location
+
+    def __str__(self):
+        return f"Resource: {self.resource_name}, Type: {self.resource_type}, Quantity: {self.quantity}, Location: {self.location}"
+
+# Class to manage the Post-Disaster Recovery Platform
+class PostDisasterRecoveryPlatform:
+    def __init__(self):
+        self.disasters = []
+        self.recovery_teams = []
+        self.resources = []
+
+    def register_disaster(self, disaster):
+        self.disasters.append(disaster)
+
+    def register_recovery_team(self, team_name, team_lead, team_members):
+        recovery_team = {
+            'team_name': team_name,
+            'team_lead': team_lead,
+            'team_members': team_members,
+            'status': 'Active'
+        }
+        self.recovery_teams.append(recovery_team)
+
+    def register_resource(self, resource):
+        self.resources.append(resource)
+
+    def match_resources_to_disaster(self, disaster_name):
+        disaster = self.find_disaster(disaster_name)
+        if not disaster:
+            return f"Disaster '{disaster_name}' not found."
+
+        available_resources = [resource for resource in self.resources if resource.location == disaster.location]
+        disaster.resources_available = available_resources
+        return f"Resources matched to disaster '{disaster_name}': {', '.join([str(r) for r in available_resources])}"
+
+    def find_disaster(self, disaster_name):
+        for disaster in self.disasters:
+            if disaster.name == disaster_name:
+                return disaster
+        return None
+
+    def generate_report(self):
+        report = "\n--- Post-Disaster Recovery Report ---\n"
+        report += f"Report generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+
+        report += "Disasters Overview:\n"
+        for disaster in self.disasters:
+            report += f"{disaster}\n"
+            if disaster.recovery_efforts:
+                for effort in disaster.recovery_efforts:
+                    report += f"  - {effort}\n"
+            else:
+                report += "  - No recovery efforts yet.\n"
+            if disaster.resources_available:
+                report += "  - Available Resources: " + ", ".join([str(r) for r in disaster.resources_available]) + "\n"
+            else:
+                report += "  - No resources available yet.\n"
+
+        report += "\nRecovery Teams Overview:\n"
+        for team in self.recovery_teams:
+            report += f"Team: {team['team_name']}, Lead: {team['team_lead']}, Members: {', '.join(team['team_members'])}, Status: {team['status']}\n"
+        
+        return report
+
+    def save_report(self, filename):
+        report = self.generate_report()
+        with open(filename, 'w') as file:
+            file.write(report)
+        print(f"Report saved to {filename}")
+
+# Example usage
+if __name__ == "__main__":
+    platform = PostDisasterRecoveryPlatform()
+
+    # Register Disaster Events
+    disaster1 = Disaster(name="Hurricane Alpha", disaster_type="Hurricane", location="Florida", start_date="2024-09-15", severity_level="High")
+    disaster2 = Disaster(name="Earthquake Beta", disaster_type="Earthquake", location="California", start_date="2024-10-10", severity_level="Medium")
+    platform.register_disaster(disaster1)
+    platform.register_disaster(disaster2)
+
+    # Register Recovery Efforts
+    effort1 = RecoveryEffort(effort_name="Hurricane Relief", description="Providing medical supplies and food", start_date="2024-09-16", end_date="2024-12-31", status="Ongoing")
+    disaster1.add_recovery_effort(effort1)
+
+    effort2 = RecoveryEffort(effort_name="Earthquake Reconstruction", description="Rebuilding homes and infrastructure", start_date="2024-10-12", end_date="2025-03-31", status="Ongoing")
+    disaster2.add_recovery_effort(effort2)
+
+    # Register Resources
+    resource1 = Resource(resource_name="First Aid Kits", resource_type="Medical", quantity=1000, location="Florida")
+    resource2 = Resource(resource_name="Canned Food", resource_type="Food", quantity=5000, location="Florida")
+    resource3 = Resource(resource_name="Rescue Personnel", resource_type="Personnel", quantity=200, location="California")
+    platform.register_resource(resource1)
+    platform.register_resource(resource2)
+    platform.register_resource(resource3)
+
+    # Register Recovery Teams
+    platform.register_recovery_team(team_name="Team A", team_lead="Dr. Jane Doe", team_members=["John Smith", "Emily Brown"])
+    platform.register_recovery_team(team_name="Team B", team_lead="Dr. Mark Lee", team_members=["Sara White", "David Green"])
+
+    # Match resources to disasters
+    print(platform.match_resources_to_disaster("Hurricane Alpha"))
+    print(platform.match_resources_to_disaster("Earthquake Beta"))
+
+    # Generate and save the report
+    platform.save_report("post_disaster_recovery_report.txt")
