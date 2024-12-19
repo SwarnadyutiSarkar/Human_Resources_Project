@@ -1,0 +1,117 @@
+import json
+from datetime import datetime
+
+# Class to represent an Expert in the Knowledge Exchange Network
+class Expert:
+    def __init__(self, name, expertise_field, experience_years, location, contact_info):
+        self.name = name
+        self.expertise_field = expertise_field
+        self.experience_years = experience_years
+        self.location = location
+        self.contact_info = contact_info
+        self.availability = True  # Experts are available by default
+
+    def offer_knowledge(self, community, topic):
+        if self.availability:
+            return f"{self.name} is offering knowledge on '{topic}' to the {community.name} community."
+        else:
+            return f"{self.name} is currently unavailable for knowledge exchange."
+
+    def __str__(self):
+        return f"{self.name} ({self.expertise_field}, {self.experience_years} years of experience) - Location: {self.location}"
+
+# Class to represent a Community
+class Community:
+    def __init__(self, name, location, community_type):
+        self.name = name
+        self.location = location
+        self.community_type = community_type  # e.g., "rural", "urban", "indigenous"
+        self.expert_requests = []
+
+    def request_expert(self, topic):
+        self.expert_requests.append(topic)
+        return f"{self.name} community has requested an expert on '{topic}'."
+
+    def __str__(self):
+        return f"Community: {self.name}, Location: {self.location}, Type: {self.community_type}"
+
+# Class to manage the Knowledge Exchange Network
+class KnowledgeExchangeNetwork:
+    def __init__(self):
+        self.experts = []
+        self.communities = []
+
+    def register_expert(self, expert):
+        self.experts.append(expert)
+
+    def register_community(self, community):
+        self.communities.append(community)
+
+    def match_expert_to_community(self, community_name, topic):
+        community = self.find_community(community_name)
+        if not community:
+            return f"Community '{community_name}' not found."
+
+        for expert in self.experts:
+            if expert.expertise_field.lower() == topic.lower() and expert.availability:
+                return expert.offer_knowledge(community, topic)
+
+        return f"No available expert found for the topic '{topic}' in the community '{community_name}'."
+
+    def find_community(self, community_name):
+        for community in self.communities:
+            if community.name == community_name:
+                return community
+        return None
+
+    def generate_report(self):
+        report = "\n--- Knowledge Exchange Network Report ---\n"
+        report += f"Report generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+        
+        report += "Experts Overview:\n"
+        for expert in self.experts:
+            report += f"{expert}\n"
+        
+        report += "\nCommunities Overview:\n"
+        for community in self.communities:
+            report += f"{community}\n"
+            if community.expert_requests:
+                report += "  - Expert Requests: " + ", ".join(community.expert_requests) + "\n"
+            else:
+                report += "  - No expert requests yet.\n"
+        
+        return report
+
+    def save_report(self, filename):
+        report = self.generate_report()
+        with open(filename, 'w') as file:
+            file.write(report)
+        print(f"Report saved to {filename}")
+
+# Example usage
+if __name__ == "__main__":
+    # Initialize the Knowledge Exchange Network
+    network = KnowledgeExchangeNetwork()
+
+    # Register Experts
+    expert1 = Expert(name="Dr. Alice Johnson", expertise_field="Agriculture", experience_years=15, location="Nairobi, Kenya", contact_info="alice.johnson@example.com")
+    expert2 = Expert(name="Dr. Bob Smith", expertise_field="Renewable Energy", experience_years=10, location="London, UK", contact_info="bob.smith@example.com")
+    network.register_expert(expert1)
+    network.register_expert(expert2)
+
+    # Register Communities
+    community1 = Community(name="Green Village", location="Rural Africa", community_type="Rural")
+    community2 = Community(name="Urban Innovators", location="Urban City", community_type="Urban")
+    network.register_community(community1)
+    network.register_community(community2)
+
+    # Community requests expert assistance
+    community1.request_expert("Agriculture")
+    community2.request_expert("Renewable Energy")
+
+    # Match experts to community requests
+    print(network.match_expert_to_community("Green Village", "Agriculture"))
+    print(network.match_expert_to_community("Urban Innovators", "Renewable Energy"))
+
+    # Generate and save the network report
+    network.save_report("knowledge_exchange_report.txt")
