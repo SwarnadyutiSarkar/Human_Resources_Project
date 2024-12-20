@@ -1,0 +1,105 @@
+import json
+from datetime import datetime
+
+# Class to represent a species in the biodiversity system
+class Species:
+    def __init__(self, name, species_type, conservation_status, habitat):
+        self.name = name
+        self.species_type = species_type
+        self.conservation_status = conservation_status
+        self.habitat = habitat
+        self.observations = []
+
+    def add_observation(self, observation):
+        self.observations.append(observation)
+
+    def __str__(self):
+        return f"Species: {self.name}, Type: {self.species_type}, Status: {self.conservation_status}, Habitat: {self.habitat}"
+
+# Class to represent an observation of a species
+class Observation:
+    def __init__(self, date, location, count, notes):
+        self.date = date
+        self.location = location
+        self.count = count
+        self.notes = notes
+
+    def __str__(self):
+        return f"Date: {self.date}, Location: {self.location}, Count: {self.count}, Notes: {self.notes}"
+
+# Class to manage the monitoring of biodiversity
+class BiodiversityMonitor:
+    def __init__(self):
+        self.species_list = []
+        self.conservation_efforts = []
+
+    def add_species(self, species):
+        self.species_list.append(species)
+
+    def record_observation(self, species_name, observation):
+        species = self.find_species(species_name)
+        if species:
+            species.add_observation(observation)
+        else:
+            print(f"Species {species_name} not found!")
+
+    def find_species(self, species_name):
+        for species in self.species_list:
+            if species.name == species_name:
+                return species
+        return None
+
+    def track_conservation_effort(self, effort_description, start_date, end_date):
+        effort = {
+            'description': effort_description,
+            'start_date': start_date,
+            'end_date': end_date,
+            'status': 'Ongoing'
+        }
+        self.conservation_efforts.append(effort)
+
+    def generate_report(self):
+        report = "\n--- Biodiversity Monitoring Report ---\n"
+        report += f"Report generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+
+        report += "Species Overview:\n"
+        for species in self.species_list:
+            report += f"{species}\n"
+            for observation in species.observations:
+                report += f"  - Observation: {observation}\n"
+        
+        report += "\nConservation Efforts:\n"
+        for effort in self.conservation_efforts:
+            report += f"Effort: {effort['description']}, Start Date: {effort['start_date']}, End Date: {effort['end_date']}, Status: {effort['status']}\n"
+        
+        return report
+
+    def save_report(self, filename):
+        report = self.generate_report()
+        with open(filename, 'w') as file:
+            file.write(report)
+        print(f"Report saved to {filename}")
+
+# Example usage
+if __name__ == "__main__":
+    monitor = BiodiversityMonitor()
+
+    # Add species
+    species1 = Species("African Elephant", "Mammal", "Endangered", "Savannah")
+    species2 = Species("Giant Panda", "Mammal", "Vulnerable", "Bamboo Forest")
+    monitor.add_species(species1)
+    monitor.add_species(species2)
+
+    # Record observations
+    obs1 = Observation(date="2024-04-01", location="Serengeti National Park", count=50, notes="Observed in the central area of the park.")
+    monitor.record_observation("African Elephant", obs1)
+
+    obs2 = Observation(date="2024-05-10", location="Wolong National Nature Reserve", count=10, notes="Observed near a bamboo grove.")
+    monitor.record_observation("Giant Panda", obs2)
+
+    # Track conservation efforts
+    monitor.track_conservation_effort("Elephant Habitat Preservation Program", "2024-01-01", "2025-12-31")
+    monitor.track_conservation_effort("Panda Reforestation Initiative", "2023-06-15", "2024-06-15")
+
+    # Generate and save report
+    monitor.save_report("biodiversity_report.txt")

@@ -1,0 +1,86 @@
+import streamlit as st
+import pandas as pd
+import uuid
+from datetime import datetime
+
+# Sample knowledge base (in a real scenario, this would be dynamic or database-driven)
+knowledge_base = {
+    'How to reset my password?': 'Go to settings and click on "Reset Password".',
+    'How to report a bug?': 'Use the "Report a Bug" form in the help section.',
+    'How to change my email?': 'Navigate to your profile and click on "Edit Email".',
+}
+
+# Placeholder for storing tickets (in a real system, this would be a database)
+if 'tickets' not in st.session_state:
+    st.session_state.tickets = pd.DataFrame(columns=["Ticket ID", "Subject", "Description", "Status", "Timestamp"])
+
+# Ticket submission function
+def submit_ticket(subject, description):
+    ticket_id = str(uuid.uuid4())  # Generate a unique ticket ID
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    new_ticket = pd.DataFrame([[ticket_id, subject, description, 'Open', timestamp]], 
+                              columns=["Ticket ID", "Subject", "Description", "Status", "Timestamp"])
+    
+    st.session_state.tickets = pd.concat([st.session_state.tickets, new_ticket], ignore_index=True)
+    st.success(f"Ticket successfully submitted. Your Ticket ID is: {ticket_id}")
+
+# Search and resolve tickets function
+def search_ticket(ticket_id):
+    ticket = st.session_state.tickets[st.session_state.tickets['Ticket ID'] == ticket_id]
+    if not ticket.empty:
+        st.write(ticket)
+    else:
+        st.error(f"No ticket found with ID: {ticket_id}")
+
+# Knowledge base search function
+def search_knowledge_base(query):
+    response = knowledge_base.get(query, 'No solution found for this query.')
+    st.write(response)
+
+# Streamlit UI
+st.set_page_config(page_title="Self-Ticketing System", layout="wide")
+st.title("Self-Ticketing System")
+st.markdown("""
+Welcome to the Self-Ticketing System! You can submit tickets, check your existing ticket status, or search the knowledge base for solutions.
+""")
+
+# Sidebar for navigation
+st.sidebar.title("Menu")
+option = st.sidebar.radio("Select an option", ["Submit Ticket", "Check Ticket Status", "Knowledge Base"])
+
+if option == "Submit Ticket":
+    st.subheader("Submit a New Ticket")
+    subject = st.text_input("Ticket Subject")
+    description = st.text_area("Ticket Description")
+    
+    if st.button("Submit Ticket"):
+        if subject and description:
+            submit_ticket(subject, description)
+        else:
+            st.error("Please fill in both subject and description.")
+
+elif option == "Check Ticket Status":
+    st.subheader("Check Ticket Status")
+    ticket_id = st.text_input("Enter your Ticket ID")
+    
+    if st.button("Search Ticket"):
+        if ticket_id:
+            search_ticket(ticket_id)
+        else:
+            st.error("Please enter a Ticket ID to search.")
+    
+elif option == "Knowledge Base":
+    st.subheader("Search Knowledge Base")
+    query = st.text_input("Enter your query or issue (e.g., 'How to reset my password?')")
+    
+    if st.button("Search"):
+        if query:
+            search_knowledge_base(query)
+        else:
+            st.error("Please enter a query to search.")
+    
+# Display all tickets (Admin/Support view, optional)
+if st.checkbox("Show All Tickets (Admin)"):
+    st.subheader("All Tickets")
+    st.write(st.session_state.tickets)
+
