@@ -1,0 +1,113 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+
+# Sample data
+# In a real scenario, data could be loaded from an external source
+# For demonstration, we create sample economic data
+
+# Data: region, resilience score (0 to 100), GDP, unemployment rate, infrastructure index
+data = {
+    'Region': ['North', 'South', 'East', 'West', 'Central'],
+    'Resilience Score': [72, 50, 85, 60, 90],
+    'GDP (Billion USD)': [120, 80, 200, 150, 300],
+    'Unemployment Rate (%)': [7.5, 12.3, 5.1, 8.0, 3.2],
+    'Infrastructure Index': [80, 55, 90, 60, 95]
+}
+
+# Convert to DataFrame
+df = pd.DataFrame(data)
+
+# Set the page layout
+st.set_page_config(page_title="Economic Resilience Dashboard", layout="wide")
+
+# Dashboard Header
+st.title("Economic Resilience Dashboard")
+st.markdown("""
+This dashboard assesses and visualizes economic resilience in vulnerable regions based on several factors such as resilience score, GDP, unemployment, and infrastructure.
+""")
+
+# Sidebar Filters
+st.sidebar.header("Filters")
+
+# Region selection
+region_filter = st.sidebar.multiselect(
+    "Select Regions", 
+    options=df['Region'].unique(), 
+    default=df['Region'].unique()
+)
+
+# Apply region filter
+filtered_df = df[df['Region'].isin(region_filter)]
+
+# Display the filtered data
+st.subheader("Economic Data Overview")
+st.write(filtered_df)
+
+# Resilience Score vs GDP
+fig1 = px.scatter(filtered_df, 
+                  x='GDP (Billion USD)', 
+                  y='Resilience Score', 
+                  color='Region', 
+                  size='GDP (Billion USD)', 
+                  hover_name='Region', 
+                  title="Resilience Score vs GDP",
+                  labels={'GDP (Billion USD)': 'GDP (Billion USD)', 'Resilience Score': 'Resilience Score (%)'})
+st.plotly_chart(fig1)
+
+# Unemployment Rate vs Resilience Score
+fig2 = px.bar(filtered_df, 
+              x='Region', 
+              y='Unemployment Rate (%)', 
+              color='Region', 
+              title="Unemployment Rate vs Resilience Score",
+              labels={'Unemployment Rate (%)': 'Unemployment Rate (%)'})
+st.plotly_chart(fig2)
+
+# Infrastructure Index vs Resilience Score
+fig3 = px.box(filtered_df, 
+              x='Region', 
+              y='Infrastructure Index', 
+              color='Region', 
+              title="Infrastructure Index vs Resilience Score",
+              labels={'Infrastructure Index': 'Infrastructure Index'})
+st.plotly_chart(fig3)
+
+# Line chart of Resilience Score over regions
+fig4 = go.Figure()
+fig4.add_trace(go.Scatter(x=filtered_df['Region'], 
+                         y=filtered_df['Resilience Score'], 
+                         mode='lines+markers', 
+                         name='Resilience Score'))
+fig4.update_layout(title="Resilience Score by Region",
+                  xaxis_title="Region",
+                  yaxis_title="Resilience Score (%)")
+st.plotly_chart(fig4)
+
+# Economic Resilience Summary
+st.subheader("Economic Resilience Summary")
+
+# Calculate and display key metrics
+average_resilience_score = filtered_df['Resilience Score'].mean()
+average_gdp = filtered_df['GDP (Billion USD)'].mean()
+average_unemployment = filtered_df['Unemployment Rate (%)'].mean()
+average_infrastructure_index = filtered_df['Infrastructure Index'].mean()
+
+st.write(f"Average Resilience Score: {average_resilience_score:.2f}")
+st.write(f"Average GDP (Billion USD): {average_gdp:.2f}")
+st.write(f"Average Unemployment Rate (%): {average_unemployment:.2f}")
+st.write(f"Average Infrastructure Index: {average_infrastructure_index:.2f}")
+
+# Suggestions and recommendations
+st.subheader("Suggestions for Improvement")
+st.markdown("""
+- **Regions with low resilience scores** may benefit from investment in infrastructure and economic diversification.
+- **High unemployment regions** might focus on job creation and training programs to boost employment.
+- Consider improving infrastructure in regions with lower indices to improve overall economic resilience.
+""")
+
+# Footer
+st.markdown("---")
+st.markdown("Created with ❤️ by [Your Name]")
+
