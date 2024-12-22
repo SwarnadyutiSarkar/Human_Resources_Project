@@ -1,0 +1,71 @@
+# disaster_response_app.py
+from flask import Flask, render_template, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///disasters.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Model for Disaster information
+class Disaster(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    location = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(50), nullable=False)
+
+    def __repr__(self):
+        return f"Disaster({self.name}, {self.location}, {self.status})"
+
+# Model for Messages (communication between users)
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_name = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    disaster_id = db.Column(db.Integer, db.ForeignKey('disaster.id'), nullable=False)
+    disaster = db.relationship('Disaster', backref=db.backref('messages', lazy=True))
+
+    def __repr__(self):
+        return f"Message({self.user_name}, {self.message})"
+
+@app.route('/')
+def index():
+    disasters = Disaster.query.all()
+    return render_template('index.html', disasters=disasters)
+
+@app.route('/disaster/<int:disaster_id>')
+def disaster_detail(disaster_id):
+    disaster = Disaster.query.get_or_404(disaster_id)
+    messages = Message.query.filter_by(disaster_id=disaster_id).all()
+    return render_template('disaster_detail.html', disaster=disaster, messages=messages)
+
+@app.route('/send_message', methods=['POST'])
+def send_message():
+    user_name = request.form['user_name']
+    message = request.form['message']
+    disaster_id = request.form['disaster_id']
+    
+    # Save message to DB
+    new_message = Message(user_name=user_name, message=message, disaster_id=disaster_id)
+    db.session.add(new_message)
+    db.session.commit()
+    
+    return jsonify({"status": "success", "message": "Message sent successfully!"})
+
+@app.route('/add_disaster', methods=['POST'])
+def add_disaster():
+    name = request.form['name']
+    location = request.form['location']
+    description = request.form['description']
+    status = request.form['status']
+    
+    new_disaster = Disaster(name=name, location=location, description=description, status=status)
+    db.session.add(new_disaster)
+    db.session.commit()
+    
+    return jsonify({"status": "success", "message": "Disaster added successfully!"})
+
+if __name__ == '__main__':
+    db.create_all()  # Create database tables
+    app.run(debug=True)
