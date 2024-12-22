@@ -1,0 +1,82 @@
+# womens_safety_app.py
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask_sqlalchemy import SQLAlchemy
+import datetime
+
+# Initialize the Flask app and SQLAlchemy
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///womens_safety.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Model for Emergency Contacts
+class EmergencyContact(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    phone = db.Column(db.String(15), nullable=False)
+
+    def __repr__(self):
+        return f"Contact({self.name}, {self.phone})"
+
+# Model for Safety Resources
+class SafetyResource(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    link = db.Column(db.String(200), nullable=True)
+
+    def __repr__(self):
+        return f"Resource({self.title}, {self.link})"
+
+# Home route
+@app.route('/')
+def index():
+    contacts = EmergencyContact.query.all()
+    resources = SafetyResource.query.all()
+    return render_template('index.html', contacts=contacts, resources=resources)
+
+# Add emergency contact
+@app.route('/add_contact', methods=['POST'])
+def add_contact():
+    name = request.form['name']
+    phone = request.form['phone']
+    
+    new_contact = EmergencyContact(name=name, phone=phone)
+    db.session.add(new_contact)
+    db.session.commit()
+    
+    return redirect(url_for('index'))
+
+# Add safety resource
+@app.route('/add_resource', methods=['POST'])
+def add_resource():
+    title = request.form['title']
+    description = request.form['description']
+    link = request.form['link']
+    
+    new_resource = SafetyResource(title=title, description=description, link=link)
+    db.session.add(new_resource)
+    db.session.commit()
+    
+    return redirect(url_for('index'))
+
+# Panic button route
+@app.route('/panic', methods=['POST'])
+def panic():
+    # Log panic alert and trigger emergency response (simplified here)
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    alert_message = f"Panic button pressed at {timestamp}. Emergency alert sent."
+    
+    # In a real-world scenario, this would trigger alerts to emergency contacts, local authorities, etc.
+    print(alert_message)  # For demo purposes, just print the message to the console.
+    
+    return jsonify({"status": "success", "message": "Emergency alert sent!"})
+
+# Initialize the database
+@app.before_first_request
+def create_tables():
+    db.create_all()
+
+# Run the app
+if __name__ == '__main__':
+    app.run(debug=True)
