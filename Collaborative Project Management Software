@@ -1,0 +1,184 @@
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+import datetime
+
+# Initialize Flask app and database
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///projects.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Models for Users, Projects, and Tasks
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+    role = db.Column(db.String(50), nullable=False)  # 'NGO', 'Government', or 'Partner'
+
+class Project(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    users = db.relationship('User', secondary='project_user')
+
+class ProjectUser(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+class Task(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    due_date = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.String(50), default='Pending')
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+    assignee_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    assignee = db.relationship('User', backref='tasks')
+
+# Decorator to check if the user is logged in
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Home route
+@app.route('/')
+def home():
+    return render_template('home.html')
+
+# User Registration
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = generate_password_hash(request.form['password'])
+        role = request.form['role']
+        
+        # Check if username already exists
+        user = User.query.filter_by(username=username).first()
+        if user:
+            flash('Username already exists!', 'danger')
+            return redirect(url_for('register'))
+
+        new_user = User(username=username, password=password, role=role)
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('Registration successful! Please login.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('register.html')
+
+# User Login
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password, password):
+            session['user_id'] = user.id
+            session['role'] = user.role
+            return redirect(url_for('dashboard'))
+
+        flash('Invalid credentials. Please try again.', 'danger')
+    
+    return render_template('login.html')
+
+# User Dashboard
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    user = User.query.get(session['user_id'])
+    projects = Project.query.join(ProjectUser).filter(ProjectUser.user_id == user.id).all()
+
+    return render_template('dashboard.html', projects=projects)
+
+# Create New Project
+@app.route('/create_project', methods=['GET', 'POST'])
+@login_required
+def create_project():
+    if request.method == 'POST':
+        title = request.form['title']
+        description = request.form['description']
+
+        new_project = Project(title=title, description=description)
+        db.session.add(new_project)
+        db.session.commit()
+
+        # Associate project with the current user
+        project_user = ProjectUser(project_id=new_project.id, user_id=session['user_id'])
+        db.session.add(project_user)
+        db.session.commit()
+
+        flash('Project created successfully!', 'success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('create_project.html')
+
+# Add User to Project (for collaboration)
+@app.route('/add_user_to_project/<int:project_id>', methods=['GET', 'POST'])
+@login_required
+def add_user_to_project(project_id):
+    if request.method == 'POST':
+        user_id = request.form['user_id']
+        project_user = ProjectUser(project_id=project_id, user_id=user_id)
+        db.session.add(project_user)
+        db.session.commit()
+
+        flash('User added to project successfully!', 'success')
+        return redirect(url_for('dashboard'))
+
+    # Fetch all users to add
+    users = User.query.all()
+    return render_template('add_user_to_project.html', users=users, project_id=project_id)
+
+# Create Task for Project
+@app.route('/create_task/<int:project_id>', methods=['GET', 'POST'])
+@login_required
+def create_task(project_id):
+    if request.method == 'POST':
+        title = request.form['title']
+        description = request.form['description']
+        due_date = datetime.datetime.strptime(request.form['due_date'], '%Y-%m-%d')
+        assignee_id = request.form['assignee_id']
+
+        new_task = Task(title=title, description=description, due_date=due_date, assignee_id=assignee_id, project_id=project_id)
+        db.session.add(new_task)
+        db.session.commit()
+
+        flash('Task created successfully!', 'success')
+        return redirect(url_for('dashboard'))
+
+    # Fetch all users to assign task
+    users = User.query.all()
+    return render_template('create_task.html', users=users, project_id=project_id)
+
+# Task Overview for each project
+@app.route('/task_overview/<int:project_id>')
+@login_required
+def task_overview(project_id):
+    project = Project.query.get(project_id)
+    tasks = Task.query.filter_by(project_id=project_id).all()
+
+    return render_template('task_overview.html', project=project, tasks=tasks)
+
+# Logout
+@app.route('/logout')
+@login_required
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+if __name__ == '__main__':
+    db.create_all()  # Create database if it doesn't exist
+    app.run(debug=True)
