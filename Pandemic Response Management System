@@ -1,0 +1,140 @@
+from flask import Flask, request, jsonify, render_template_string
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+
+# Initialize Flask app and database
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///pandemic.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Database model for Outbreaks
+class Outbreak(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    location = db.Column(db.String(100), nullable=False)
+    cases = db.Column(db.Integer, nullable=False)
+    deaths = db.Column(db.Integer, nullable=False)
+    date_reported = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(50), nullable=False)
+
+    def __repr__(self):
+        return f"Outbreak('{self.name}', '{self.location}')"
+
+
+# Initialize the database
+@app.before_first_request
+def init_db():
+    db.create_all()
+
+# Home route to show all outbreaks
+@app.route('/')
+def home():
+    outbreaks = Outbreak.query.all()
+    return render_template_string('''
+    <h1>Pandemic Response Management System</h1>
+    <h3>Ongoing Outbreaks</h3>
+    <table border="1">
+        <tr>
+            <th>Name</th>
+            <th>Location</th>
+            <th>Cases</th>
+            <th>Deaths</th>
+            <th>Status</th>
+            <th>Date Reported</th>
+        </tr>
+        {% for outbreak in outbreaks %}
+        <tr>
+            <td>{{ outbreak.name }}</td>
+            <td>{{ outbreak.location }}</td>
+            <td>{{ outbreak.cases }}</td>
+            <td>{{ outbreak.deaths }}</td>
+            <td>{{ outbreak.status }}</td>
+            <td>{{ outbreak.date_reported }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <br>
+    <a href="/register">Register a new Outbreak</a>
+    ''', outbreaks=outbreaks)
+
+# Register new outbreak route
+@app.route('/register', methods=['GET', 'POST'])
+def register_outbreak():
+    if request.method == 'POST':
+        name = request.form['name']
+        location = request.form['location']
+        cases = int(request.form['cases'])
+        deaths = int(request.form['deaths'])
+        status = request.form['status']
+
+        new_outbreak = Outbreak(name=name, location=location, cases=cases, deaths=deaths, status=status)
+        db.session.add(new_outbreak)
+        db.session.commit()
+        return jsonify({"message": "Outbreak registered successfully!"})
+
+    return '''
+        <h2>Register a New Outbreak</h2>
+        <form method="POST">
+            Name: <input type="text" name="name"><br><br>
+            Location: <input type="text" name="location"><br><br>
+            Cases: <input type="number" name="cases"><br><br>
+            Deaths: <input type="number" name="deaths"><br><br>
+            Status: <input type="text" name="status"><br><br>
+            <input type="submit" value="Register">
+        </form>
+    '''
+
+# Update outbreak status route
+@app.route('/update/<int:id>', methods=['GET', 'POST'])
+def update_outbreak(id):
+    outbreak = Outbreak.query.get_or_404(id)
+
+    if request.method == 'POST':
+        outbreak.name = request.form['name']
+        outbreak.location = request.form['location']
+        outbreak.cases = int(request.form['cases'])
+        outbreak.deaths = int(request.form['deaths'])
+        outbreak.status = request.form['status']
+        db.session.commit()
+        return jsonify({"message": "Outbreak updated successfully!"})
+
+    return '''
+        <h2>Update Outbreak</h2>
+        <form method="POST">
+            Name: <input type="text" name="name" value="{{ outbreak.name }}"><br><br>
+            Location: <input type="text" name="location" value="{{ outbreak.location }}"><br><br>
+            Cases: <input type="number" name="cases" value="{{ outbreak.cases }}"><br><br>
+            Deaths: <input type="number" name="deaths" value="{{ outbreak.deaths }}"><br><br>
+            Status: <input type="text" name="status" value="{{ outbreak.status }}"><br><br>
+            <input type="submit" value="Update">
+        </form>
+    ''', outbreak=outbreak
+
+# View details of a specific outbreak
+@app.route('/outbreak/<int:id>')
+def outbreak_details(id):
+    outbreak = Outbreak.query.get_or_404(id)
+    return jsonify({
+        'name': outbreak.name,
+        'location': outbreak.location,
+        'cases': outbreak.cases,
+        'deaths': outbreak.deaths,
+        'status': outbreak.status,
+        'date_reported': outbreak.date_reported
+    })
+
+# Global health response route (Simulation of response efforts)
+@app.route('/response', methods=['POST'])
+def pandemic_response():
+    data = request.json
+    location = data.get('location')
+    actions = data.get('actions')
+
+    if location and actions:
+        return jsonify({"message": f"Global response initiated for {location} with actions: {actions}"})
+    return jsonify({"message": "Invalid request, please provide location and actions."})
+
+# Start the Flask application
+if __name__ == '__main__':
+    app.run(debug=True)
